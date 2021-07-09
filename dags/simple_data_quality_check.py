@@ -49,6 +49,11 @@ with DAG("simple_dq_check_dag",
     1. Absolute ground truth: the local CSV file is considered perfect and immutable.
     2. Single-step data pipeline: no business logic to complicate things.
     3. Single metric to validate.
+
+    This demo works well in the case of validating data that is read from S3, such
+    as other data pipelines that will read from S3, or Athena. It would not be
+    helpful for data that is read from Redshift, as there is another load step
+    that should be validated separately.
     """
 
     @task
