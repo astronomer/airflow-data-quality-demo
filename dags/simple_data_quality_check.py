@@ -4,17 +4,16 @@ from airflow.operators.dummy_operator import DummyOperator
 from airflow.operators.email import EmailOperator
 from airflow.utils.dates import datetime
 from airflow.models import Variable
+from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 
-import boto3
 import hashlib
 
 # The file(s) to upload shouldn't be hardcoded in a production setting, this is just for demo purposes.
-file_name = "sample_data/forestfires.csv"
-dag_configs = Variable.get('s3_simple_dq',
+csv_file_path = "sample_data/forestfires.csv"
+dag_configs = Variable.get("s3_simple_dq",
                             deserialize_json=True)
-s3_bucket = dag_configs.get('s3_bucket')
-s3_key = dag_configs.get('s3_key_prefix') + '/' + file_name
-s3 = boto3.client('s3')
+s3_bucket = dag_configs.get("s3_bucket")
+s3_key = dag_configs.get("s3_key_prefix") + "/" + csv_file_path
 
 # These args will get passed on to each operator
 # You can override them on a per-task basis during operator initialization
@@ -33,8 +32,8 @@ with DAG("simple_dq_check_dag",
          catchup=False) as dag:
 
     def upload_to_s3():
-        with open(file_name, "rb") as f:
-            s3.upload_fileobj(f, s3_bucket, s3_key)
+        s3 = S3Hook()#S3Hook(aws_conn_id=aws_conn_id)
+        s3.load_file(csv_file_path, s3_key, bucket_name=s3_bucket)
 
     # This task uploads data from the csv files to S3.
     upload_files = PythonOperator(
@@ -43,25 +42,26 @@ with DAG("simple_dq_check_dag",
     )
 
     def validate_etag():
-        obj_meta = s3.head_object(Bucket=s3_bucket, Key=s3_key)
-        obj_etag = obj_meta['ETag'].strip('"')
-        file_hash = hashlib.md5(open(file_name).read()).hexdigest()
+        s3 = S3Hook()
+        obj = s3.get_key(key=s3_key, bucket_name=s3_bucket)
+        obj_etag = obj.e_tag.strip('"')
+        file_hash = hashlib.md5(open(csv_file_path).read().encode("utf-8")).hexdigest()
         if obj_etag == file_hash:
-            return 'valid'
-        return 'invalid'
+            return "valid"
+        return "invalid"
 
     validate_files = BranchPythonOperator(
         task_id="validate_files",
         python_callable=validate_etag
     )
 
-    valid = DummyOperator(task_id='valid')
+    valid = DummyOperator(task_id="valid")
 
     invalid = EmailOperator(
-        task_id='invalid',
-        to='',
-        subject='Simple Data Quality Check Failed',
-        html_content='Hello, your data quality check has failed.'
+        task_id="invalid",
+        to="",
+        subject="Simple Data Quality Check Failed",
+        html_content="Hello, your data quality check has failed."
     )
 
     upload_files >> validate_files
