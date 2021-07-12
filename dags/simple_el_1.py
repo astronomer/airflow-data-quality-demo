@@ -9,12 +9,12 @@ from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 import hashlib
 
 # The file(s) to upload shouldn't be hardcoded in a production setting, this is just for demo purposes.
-csv_file_name = "forestfires.csv"
-csv_file_path = f"sample_data/{csv_file_name}"
-csv_corrupt_file_path = "sample_data/forestfires_corrupt.csv"
-dag_configs = Variable.get("s3_simple_dq", deserialize_json=True)
-s3_bucket = dag_configs.get("s3_bucket")
-s3_key = dag_configs.get("s3_key_prefix") + "/" + csv_file_path
+CSV_FILE_NAME = "forestfires.csv"
+CSV_FILE_PATH = f"sample_data/{CSV_FILE_NAME}"
+CSV_CORRUPT_FILE_PATH = "sample_data/forestfires_corrupt.csv"
+AWS_CONFIGS = Variable.get("aws_configs", deserialize_json=True)
+S3_BUCKET = AWS_CONFIGS.get("s3_bucket")
+S3_KEY = AWS_CONFIGS.get("s3_key_prefix") + "/" + CSV_FILE_PATH
 
 # These args will get passed on to each operator
 # You can override them on a per-task basis during operator initialization
@@ -26,22 +26,22 @@ default_args = {
     "email_on_failure": False
 }
 
-with DAG("simple_dq_check_dag",
+with DAG("simple_el_dag_1",
          default_args=default_args,
          description="A sample Airflow DAG to load data from csv files to S3, then check that all data was uploaded properly.",
          schedule_interval=None,
          catchup=False) as dag:
     """
-    ### Simple Data Quality Check
-    This is a very simple DAG showing a minimal data pipeline with a data
-    integrity check. A single file is uploaded to S3, then it's ETag is verified
+    ### Simple EL Pipeline with Data Integrity Check 1
+    This is a very simple DAG showing a minimal EL data pipeline with a data
+    integrity check. A single file is uploaded to S3, then its ETag is verified
     against the MD5 hash of the local file. The two should match, which will
     allow the DAG to flow along the "happy path". To see the "sad path", change
     `csv_file_path` to `csv_corrupt_file_path` in the `validate_etag` task.
 
     Before running the DAG, set the following in a Variable:
-        - key: s3_simple_dq
-        - value: { "s3_bucket": [bucket_name], "s3_key_prefix": [key_prefix]}
+    - key: aws_configs
+    - value: { "s3_bucket": [bucket_name], "s3_key_prefix": [key_prefix]}
     Fully replacing [bucket_name] and [key_prefix].
 
     What makes this a simple data quality case is:
@@ -62,7 +62,7 @@ with DAG("simple_dq_check_dag",
         Simply loads the file to a specified location in S3.
         """
         s3 = S3Hook()
-        s3.load_file(csv_file_path, s3_key, bucket_name=s3_bucket, replace=True)
+        s3.load_file(CSV_FILE_PATH, S3_KEY, bucket_name=S3_BUCKET, replace=True)
 
     @task
     def validate_etag():
@@ -72,26 +72,26 @@ with DAG("simple_dq_check_dag",
         was uploaded without errors.
         """
         s3 = S3Hook()
-        obj = s3.get_key(key=s3_key, bucket_name=s3_bucket)
+        obj = s3.get_key(key=S3_KEY, bucket_name=S3_BUCKET)
         obj_etag = obj.e_tag.strip('"')
         # Change `csv_file_path` to `csv_corrupt_file_path` for the "sad path".
-        file_hash = hashlib.md5(open(csv_file_path).read().encode("utf-8")).hexdigest()
+        file_hash = hashlib.md5(open(CSV_FILE_PATH).read().encode("utf-8")).hexdigest()
         if obj_etag == file_hash:
             return "valid"
-        return "invalid"
+        return "s3_load_fail"
 
     upload_files = upload_to_s3()
     validate_file = validate_etag()
 
     valid = DummyOperator(task_id="valid")
 
-    invalid = EmailOperator(
-        task_id="invalid",
+    s3_load_fail = EmailOperator(
+        task_id="s3_load_fail",
         to="",
         subject="Simple Data Quality Check Failed",
-        html_content=f"The data integrity check for {csv_file_name} has failed."
+        html_content=f"The data integrity check for {CSV_FILE_NAME} has failed."
     )
 
     upload_files >> validate_file
+    validate_file >> s3_load_fail
     validate_file >> valid
-    validate_file >> invalid
