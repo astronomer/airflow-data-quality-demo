@@ -1,4 +1,4 @@
-from airflow import DAG
+from airflow import DAG, AirflowException
 from airflow.decorators import task
 from airflow.operators.dummy_operator import DummyOperator
 from airflow.operators.email import EmailOperator
@@ -16,6 +16,7 @@ import logging
 CSV_FILE_NAME = "forestfires.csv"
 CSV_FILE_PATH = f"sample_data/{CSV_FILE_NAME}"
 CSV_CORRUPT_FILE_PATH = "sample_data/forestfires_corrupt.csv"
+CSV_INVALID_FILE_PATH = "sample_data/forestfires_invalid.csv"
 AWS_CONFIGS = Variable.get("aws_configs", deserialize_json=True)
 S3_BUCKET = AWS_CONFIGS.get("s3_bucket")
 S3_KEY = AWS_CONFIGS.get("s3_key_prefix") + "/" + CSV_FILE_PATH
@@ -37,15 +38,16 @@ with DAG("simple_el_dag_2",
          schedule_interval=None,
          catchup=False) as dag:
     """
-    ### Simple EL Pipeline with Data Integrity Check 2
-    This is the second in a series of DAGs showing an EL pipeline with data integrity
-    checking. A single file is uploaded to S3, then its ETag is verified
-    against the MD5 hash of the local file. The two should match, which will
-    allow the DAG to flow along the "happy path". To see the "sad path", change
-    `csv_file_path` to `csv_corrupt_file_path` in the `validate_etag` task. If the
-    "happy path" is continued, a second data load from S3 to Redshift is triggered,
-    which is followed by another data integrity check. A similar "happy/sad path"
-    branch ends the DAG.
+    ### Simple EL Pipeline with Data Integrity and Quality Checks 3
+    This is the third in a series of DAGs showing an EL pipeline with data integrity
+    and data quality checking. A single file is uploaded to S3, then its ETag is
+    verified against the MD5 hash of the local file. The two should match, which
+    will allow the DAG to continue to the next task. To see the DAG failure case,
+    change `CSV_FILE_PATH` to `CSV_CORRUPT_FILE_PATH` in the `upload_to_s3` task.
+    The failure here is caused by missing rows. If the "happy path" is continued,
+    a second data load from S3 to Redshift is triggered, which is followed by
+    another data integrity check. If the check fails, an Airflow Exception is raised.
+    Otherwise, a final data quality check is performed on the Redshift table.
 
     Before running the DAG, set the following in a Variable:
     - key: aws_configs
@@ -65,6 +67,7 @@ with DAG("simple_el_dag_2",
         Simply loads the file to a specified location in S3.
         """
         s3 = S3Hook()
+        # Change `CSV_FILE_PATH` to `CSV_CORRUPT_FILE_PATH` for the failure case.
         s3.load_file(CSV_FILE_PATH, S3_KEY, bucket_name=S3_BUCKET, replace=True)
 
     @task
@@ -77,7 +80,6 @@ with DAG("simple_el_dag_2",
         s3 = S3Hook()
         obj = s3.get_key(key=S3_KEY, bucket_name=S3_BUCKET)
         obj_etag = obj.e_tag.strip('"')
-        # Change `CSV_FILE_PATH` to `CSV_CORRUPT_FILE_PATH` for the "sad path".
         file_hash = hashlib.md5(open(CSV_FILE_PATH).read().encode("utf-8")).hexdigest()
         if obj_etag == file_hash:
             return "load_to_redshift"
@@ -134,14 +136,35 @@ with DAG("simple_el_dag_2",
         logging.info(f"stl load commits: {stl_load_commits}")
         stl_load_commits.sort(key=lambda x: x[0], reverse=True)
         logging.info(f"last upload: {stl_load_commits[0]}")
-        return "valid" if stl_load_commits[0][3] == 1 else "redshift_load_fail"
+        if stl_load_commits[0][3] != 1:
+            raise AirflowException(f"CSV file was not properly uploaded to Redshift from S3.")
 
     validate_redshift = validate_redshift_table()
 
-    valid = DummyOperator(task_id="valid")
+    @task
+    def quality_check_id_column():
+        """
+        #### Column-level data quality check
+        Run a data quality check on ID column, ensuring all IDs conform to certain
+        expectations. In this case, X column should be values 1-9.
+        """
+        quality_check_query = """SELECT ID FROM {redshift_table} WHERE ID > 9 and ID < 1;""".format(redshift_table=REDSHIFT_TABLE)
+        pg_hook = PostgresHook(postgres_conn_id="redshift_default")
+        connection = pg_hook.get_conn()
+        cursor = connection.cursor()
+        cursor.execute(quality_check_query)
+        failed_rows = cursor.fetchall()
+        num_failed_rows = len(failed_rows)
+        if num_failed_rows > 0:
+            raise AirflowException(f"{num_failed_rows} contain invalid IDs:\n{failed_rows}")
+
+    quality_check_id = quality_check_id_column()
+
+    done = DummyOperator(task_id="done")
 
     upload_files >> validate_s3_file
     validate_s3_file >> create_redshift_table
     create_redshift_table >> load_to_redshift
     load_to_redshift >> validate_redshift
-    validate_redshift >> valid
+    validate_redshift >> quality_check_id
+    quality_check_id >> done
