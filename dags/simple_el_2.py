@@ -8,6 +8,7 @@ from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from airflow.providers.amazon.aws.transfers.s3_to_redshift import S3ToRedshiftOperator
 from airflow.providers.postgres.operators.postgres import PostgresOperator
 from airflow.providers.postgres.hooks.postgres import PostgresHook
+from airflow.sensors.sql import SqlSensor
 
 import hashlib
 import logging
@@ -115,45 +116,25 @@ with DAG("simple_el_dag_2",
         task_id='load_to_redshift',
     )
 
-    @task
-    def validate_redshift_table():
-        """
-        #### Redshift row validation task
-        Ensure that data was copied to Redshift from S3 correctly.
-        """
-        stl_load_errors_query = """
-            SELECT
-              query,
-              trim(filename) as filename,
-              line_number,
-              colname,
-              raw_line,
-              raw_field_value,
-              err_code,
-              err_reason
-            FROM stl_load_errors
-            WHERE filename LIKE '%{filename}%'
-            ORDER BY query DESC
-            LIMIT 1;
-        """.format(filename=CSV_FILE_NAME)
-        pg_hook = PostgresHook(postgres_conn_id="redshift_default")
-        connection = pg_hook.get_conn()
-        cursor = connection.cursor()
-        cursor.execute(stl_load_errors_query)
-        stl_load_errors = cursor.fetchall()
-        if stl_load_errors:
-            for stl_load_error in stl_load_errors:
-                query, filename, line_number, colname, raw_line, raw_field_value, err_code, err_reason = stl_load_error
-                raise AirflowException(
-                    f"File {filename} errored during upload query number {query} from S3 to Redshift\n"
-                    f"Error occured on line {line_number} and column {colname.rstrip()}\n"
-                    f"Error code: {err_code}\n"
-                    f"Error reason: {err_reason.rstrip()}\n"
-                    f"Raw line: {raw_line.rstrip()}\n"
-                    f"Raw field value: {raw_field_value.rstrip()}"
-                )
+    def redshift_load_error(cell):
+        # If there is a load error, log the query here so it can be checked
+        # directly in Redshift for further details.
+        logging.info(f"Checking failure case for cell: {cell}")
+        return True
 
-    validate_redshift = validate_redshift_table()
+    """
+    #### Redshift row validation task
+    Ensure that data was copied to Redshift from S3 correctly. A SQL Sensor is
+    used here to check for any files in the stl_load_errors table. If the failure
+    callback (above) is triggered, the query number is printed to the task log.
+    """
+    validate_redshift = SqlSensor(
+        task_id="validate_redshift",
+        conn_id="redshift_default",
+        sql="sql/validate_forestfire_redshift_load.sql",
+        params={"filename": CSV_FILE_NAME},
+        failure=redshift_load_error
+    )
 
     done = DummyOperator(task_id="done")
 
