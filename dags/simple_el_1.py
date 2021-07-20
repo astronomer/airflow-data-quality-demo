@@ -1,4 +1,4 @@
-from airflow import DAG
+from airflow import DAG, AirflowException
 from airflow.decorators import task
 from airflow.operators.dummy_operator import DummyOperator
 from airflow.operators.email import EmailOperator
@@ -10,8 +10,9 @@ import hashlib
 
 # The file(s) to upload shouldn't be hardcoded in a production setting, this is just for demo purposes.
 CSV_FILE_NAME = "forestfires.csv"
-CSV_FILE_PATH = f"sample_data/{CSV_FILE_NAME}"
-CSV_CORRUPT_FILE_PATH = "sample_data/forestfires_corrupt.csv"
+CSV_FILE_PATH = f"include/sample_data/{CSV_FILE_NAME}"
+CSV_CORRUPT_FILE_NAME = "forestfires_corrupt.csv"
+CSV_CORRUPT_FILE_PATH = f"include/sample_data/{CSV_CORRUPT_FILE_NAME}"
 AWS_CONFIGS = Variable.get("aws_configs", deserialize_json=True)
 S3_BUCKET = AWS_CONFIGS.get("s3_bucket")
 S3_KEY = AWS_CONFIGS.get("s3_key_prefix") + "/" + CSV_FILE_PATH
@@ -76,22 +77,13 @@ with DAG("simple_el_dag_1",
         obj_etag = obj.e_tag.strip('"')
         # Change `csv_file_path` to `csv_corrupt_file_path` for the "sad path".
         file_hash = hashlib.md5(open(CSV_FILE_PATH).read().encode("utf-8")).hexdigest()
-        if obj_etag == file_hash:
-            return "valid"
-        return "s3_load_fail"
+        if obj_etag != file_hash:
+            raise AirflowException(f"Upload Error: Object ETag in S3 did not match hash of local file.")
 
     upload_files = upload_to_s3()
     validate_file = validate_etag()
 
-    valid = DummyOperator(task_id="valid")
-
-    s3_load_fail = EmailOperator(
-        task_id="s3_load_fail",
-        to="",
-        subject="Simple Data Quality Check Failed",
-        html_content=f"The data integrity check for {CSV_FILE_NAME} has failed."
-    )
+    done = DummyOperator(task_id="done")
 
     upload_files >> validate_file
-    validate_file >> s3_load_fail
-    validate_file >> valid
+    validate_file >> done
