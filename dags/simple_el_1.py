@@ -1,10 +1,9 @@
 from airflow import DAG, AirflowException
 from airflow.decorators import task
-from airflow.operators.dummy_operator import DummyOperator
-from airflow.operators.email import EmailOperator
-from airflow.utils.dates import datetime
 from airflow.models import Variable
+from airflow.operators.dummy_operator import DummyOperator
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
+from airflow.utils.dates import datetime
 
 import hashlib
 
@@ -13,9 +12,6 @@ CSV_FILE_NAME = "forestfires.csv"
 CSV_FILE_PATH = f"include/sample_data/{CSV_FILE_NAME}"
 CSV_CORRUPT_FILE_NAME = "forestfires_corrupt.csv"
 CSV_CORRUPT_FILE_PATH = f"include/sample_data/{CSV_CORRUPT_FILE_NAME}"
-AWS_CONFIGS = Variable.get("aws_configs", deserialize_json=True)
-S3_BUCKET = AWS_CONFIGS.get("s3_bucket")
-S3_KEY = AWS_CONFIGS.get("s3_key_prefix") + "/" + CSV_FILE_PATH
 
 # These args will get passed on to each operator
 # You can override them on a per-task basis during operator initialization
@@ -38,9 +34,9 @@ with DAG("simple_el_dag_1",
     integrity check. A single file is uploaded to S3, then its ETag is verified
     against the MD5 hash of the local file. The two should match, which will
     allow the DAG to flow along the "happy path". To see the "sad path", change
-    `csv_file_path` to `csv_corrupt_file_path` in the `validate_etag` task.
+    `CSV_FILE_PATH` to `CSV_CORRUPT_FILE_PATH` in the `validate_etag` task.
 
-    Before running the DAG, set the following in a Variable:
+    Before running the DAG, set the following in an Airflow or Environment Variable:
     - key: aws_configs
     - value: { "s3_bucket": [bucket_name], "s3_key_prefix": [key_prefix]}
     Fully replacing [bucket_name] and [key_prefix].
@@ -62,28 +58,31 @@ with DAG("simple_el_dag_1",
         #### Upload task
         Simply loads the file to a specified location in S3.
         """
+        aws_configs = Variable.get("aws_configs", deserialize_json=True)
+        s3_bucket = aws_configs.get("s3_bucket")
+        s3_key = aws_configs.get("s3_key_prefix") + "/" + CSV_FILE_PATH
         s3 = S3Hook()
-        s3.load_file(CSV_FILE_PATH, S3_KEY, bucket_name=S3_BUCKET, replace=True)
+        s3.load_file(CSV_FILE_PATH, s3_key, bucket_name=s3_bucket, replace=True)
+        return { "s3_bucket": s3_bucket, "s3_key": s3_key }
 
     @task
-    def validate_etag():
+    def validate_etag(s3_data):
         """
         #### Validation task
         Check the destination ETag against the local MD5 hash to ensure the file
         was uploaded without errors.
         """
         s3 = S3Hook()
-        obj = s3.get_key(key=S3_KEY, bucket_name=S3_BUCKET)
+        obj = s3.get_key(key=s3_data.get("s3_key"), bucket_name=s3_data.get("s3_bucket"))
         obj_etag = obj.e_tag.strip('"')
-        # Change `csv_file_path` to `csv_corrupt_file_path` for the "sad path".
+        # Change `CSV_FILE_PATH` to `CSV_CORRUPT_FILE_PATH` for the "sad path".
         file_hash = hashlib.md5(open(CSV_FILE_PATH).read().encode("utf-8")).hexdigest()
         if obj_etag != file_hash:
             raise AirflowException(f"Upload Error: Object ETag in S3 did not match hash of local file.")
 
-    upload_files = upload_to_s3()
-    validate_file = validate_etag()
+    upload_file = upload_to_s3()
+    validate_file = validate_etag(upload_file)
 
     done = DummyOperator(task_id="done")
 
-    upload_files >> validate_file
     validate_file >> done
