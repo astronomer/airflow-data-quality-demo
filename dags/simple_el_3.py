@@ -129,24 +129,16 @@ with DAG("simple_el_dag_3",
         task_id='load_to_redshift',
     )
 
-    def redshift_load_error(cell):
-        # If there is a load error, log the query here so it can be checked
-        # directly in Redshift for further details.
-        logging.info(f"Checking failure case for cell: {cell}")
-        return True
-
     """
     #### Redshift row validation task
-    Ensure that data was copied to Redshift from S3 correctly. A SQL Sensor is
-    used here to check for any files in the stl_load_errors table. If the failure
-    callback (above) is triggered, the query number is printed to the task log.
+    Ensure that data was copied to Redshift from S3 correctly. A SQLCheckOperator is
+    used here to check for any files in the stl_load_errors table.
     """
-    validate_redshift = SqlSensor(
+    validate_redshift = SQLCheckOperator(
         task_id="validate_redshift",
         conn_id="redshift_default",
         sql="sql/validate_forestfire_redshift_load.sql",
         params={"filename": CSV_FILE_NAME},
-        failure=redshift_load_error
     )
 
     """
