@@ -6,7 +6,7 @@ from airflow.models import Variable
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from airflow.providers.amazon.aws.transfers.s3_to_redshift import S3ToRedshiftOperator
 from airflow.providers.postgres.operators.postgres import PostgresOperator
-from airflow.sensors.sql import SqlSensor
+from airflow.operators.sql import SQLCheckOperator
 
 import hashlib
 import logging
