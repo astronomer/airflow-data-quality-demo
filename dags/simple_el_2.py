@@ -92,6 +92,17 @@ with DAG("simple_el_dag_2",
     validate_file = validate_etag(upload_file)
 
     """
+    #### Drop Redshift table
+    Drops the Redshift table created in a previous step.
+    """
+    drop_redshift_table = PostgresOperator(
+        task_id='drop_table',
+        sql="sql/drop_forestfire_table.sql",
+        postgres_conn_id="redshift_default",
+        params={"redshift_table": Variable.get("aws_configs", deserialize_json=True).get("redshift_table")}
+    )
+
+    """
     #### Create Redshift Table (Optional)
     For demo purposes, create a Redshift table to store the forest fire data to.
     The database is not automatically destroyed at the end of the example; ensure

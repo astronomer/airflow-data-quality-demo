@@ -15,16 +15,16 @@ import json
 import logging
 
 # The file(s) to upload shouldn't be hardcoded in a production setting, this is just for demo purposes.
-CSV_FILE_NAME = "forestfires.csv"
-CSV_FILE_PATH = f"include/sample_data/{CSV_FILE_NAME}"
+#CSV_FILE_NAME = "forestfires_1.csv"
+#CSV_FILE_PATH = f"include/sample_data/{CSV_FILE_NAME}"
 #CSV_CORRUPT_FILE_NAME = "forestfires_corrupt.csv"
 #CSV_CORRUPT_FILE_PATH = f"include/sample_data/{CSV_CORRUPT_FILE_NAME}"
 
 # Uncomment the below two constants to see the "sad path" - make sure to delete
 # any valid records in Redshift first, or the data quality check will still succeed
 # based on the old records.
-#CSV_FILE_NAME = "forestfires_invalid.csv"
-#CSV_FILE_PATH = f"include/sample_data/{CSV_FILE_NAME}"
+CSV_FILE_NAME = "forestfires_invalid_1.csv"
+CSV_FILE_PATH = f"include/sample_data/{CSV_FILE_NAME}"
 
 # These args will get passed on to each operator
 # You can override them on a per-task basis during operator initialization
@@ -100,6 +100,17 @@ with DAG("simple_el_dag_3",
     validate_file = validate_etag(upload_file)
 
     """
+    #### Drop Redshift table
+    Drops the Redshift table created in a previous step.
+    """
+    drop_redshift_table = PostgresOperator(
+        task_id='drop_table',
+        sql="sql/drop_forestfire_table.sql",
+        postgres_conn_id="redshift_default",
+        params={"redshift_table": Variable.get("aws_configs", deserialize_json=True).get("redshift_table")}
+    )
+
+    """
     #### Create Redshift Table (Optional)
     For demo purposes, create a Redshift table to store the forest fire data to.
     The database is not automatically destroyed at the end of the example; ensure
@@ -160,7 +171,8 @@ with DAG("simple_el_dag_3",
 
     done = DummyOperator(task_id="done")
 
-    validate_file >> create_redshift_table
+    validate_file >> drop_redshift_table
+    drop_redshift_table >> create_redshift_table
     create_redshift_table >> load_to_redshift
     load_to_redshift >> validate_redshift
     validate_redshift >> quality_check_group
