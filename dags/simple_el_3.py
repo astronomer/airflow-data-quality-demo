@@ -15,16 +15,16 @@ import json
 import logging
 
 # The file(s) to upload shouldn't be hardcoded in a production setting, this is just for demo purposes.
-#CSV_FILE_NAME = "forestfires_1.csv"
-#CSV_FILE_PATH = f"include/sample_data/{CSV_FILE_NAME}"
+CSV_FILE_NAME = "forestfires.csv"
+CSV_FILE_PATH = f"include/sample_data/{CSV_FILE_NAME}"
 #CSV_CORRUPT_FILE_NAME = "forestfires_corrupt.csv"
 #CSV_CORRUPT_FILE_PATH = f"include/sample_data/{CSV_CORRUPT_FILE_NAME}"
 
 # Uncomment the below two constants to see the "sad path" - make sure to delete
 # any valid records in Redshift first, or the data quality check will still succeed
 # based on the old records.
-CSV_FILE_NAME = "forestfires_invalid_1.csv"
-CSV_FILE_PATH = f"include/sample_data/{CSV_FILE_NAME}"
+#CSV_FILE_NAME = "forestfires_invalid.csv"
+#CSV_FILE_PATH = f"include/sample_data/{CSV_FILE_NAME}"
 
 # These args will get passed on to each operator
 # You can override them on a per-task basis during operator initialization
