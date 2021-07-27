@@ -1,1 +1,1 @@
-DROP TABLE IF EXISTS {{ params.redshift_table }};
+DROP TABLE IF EXISTS {{ var.json.aws_configs.redshift_table }};

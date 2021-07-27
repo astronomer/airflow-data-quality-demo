@@ -12,5 +12,5 @@ SELECT ID,
   CASE wind WHEN {{ params.wind }} THEN 1 ELSE 0 END AS wind_check,
   CASE rain WHEN {{ params.rain }} THEN 1 ELSE 0 END AS rain_check,
   CASE area WHEN {{ params.area }} THEN 1 ELSE 0 END AS area_check
-FROM {{ params.redshift_table }}
+FROM {{ var.json.aws_configs.redshift_table }}
 WHERE ID = {{ params.id }}

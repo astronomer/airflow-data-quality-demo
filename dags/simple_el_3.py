@@ -12,7 +12,6 @@ from airflow.utils.task_group import TaskGroup
 
 import hashlib
 import json
-import logging
 
 # The file(s) to upload shouldn't be hardcoded in a production setting, this is just for demo purposes.
 CSV_FILE_NAME = "forestfires.csv"
@@ -106,8 +105,7 @@ with DAG("simple_el_dag_3",
     drop_redshift_table = PostgresOperator(
         task_id='drop_table',
         sql="sql/drop_forestfire_table.sql",
-        postgres_conn_id="redshift_default",
-        params={"redshift_table": Variable.get("aws_configs", deserialize_json=True).get("redshift_table")}
+        postgres_conn_id="redshift_default"
     )
 
     """
@@ -121,8 +119,7 @@ with DAG("simple_el_dag_3",
     create_redshift_table = PostgresOperator(
         task_id='create_table',
         sql="sql/create_forestfire_table.sql",
-        postgres_conn_id="redshift_default",
-        params={"redshift_table": Variable.get("aws_configs", deserialize_json=True).get("redshift_table")}
+        postgres_conn_id="redshift_default"
     )
 
     """
@@ -131,10 +128,10 @@ with DAG("simple_el_dag_3",
     in the Airflow Variables backend).
     """
     load_to_redshift = S3ToRedshiftOperator(
-        s3_bucket=Variable.get("aws_configs", deserialize_json=True).get("s3_bucket"),
-        s3_key=f'{Variable.get("aws_configs", deserialize_json=True).get("s3_key_prefix")}/{CSV_FILE_PATH}',
+        s3_bucket="{{ var.json.aws_configs.s3_bucket }}",
+        s3_key="{{ var.json.aws_configs.s3_key_prefix }}"+f"/{CSV_FILE_PATH}",
         schema="PUBLIC",
-        table=Variable.get("aws_configs", deserialize_json=True).get("redshift_table"),
+        table="{{ var.json.aws_configs.redshift_table }}",
         copy_options=['csv'],
         task_id='load_to_redshift',
     )
@@ -161,7 +158,6 @@ with DAG("simple_el_dag_3",
             ffv_json = json.load(ffv)
             for id, values in ffv_json.items():
                 values["id"] = id
-                values["redshift_table"] = Variable.get("aws_configs", deserialize_json=True).get("redshift_table")
                 SQLCheckOperator(
                     task_id=f"forestfire_row_quality_check_{id}",
                     conn_id="redshift_default",

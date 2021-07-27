@@ -9,7 +9,6 @@ from airflow.providers.postgres.operators.postgres import PostgresOperator
 from airflow.operators.sql import SQLCheckOperator
 
 import hashlib
-import logging
 
 # The file(s) to upload shouldn't be hardcoded in a production setting, this is just for demo purposes.
 CSV_FILE_NAME = "forestfires.csv"
