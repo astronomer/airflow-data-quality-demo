@@ -37,7 +37,7 @@ with DAG("simple_el_dag_2",
     checking. A single file is uploaded to S3, then its ETag is verified
     against the MD5 hash of the local file. The two should match, which will
     allow the DAG to flow along the "happy path". To see the "sad path", change
-    `csv_file_path` to `csv_corrupt_file_path` in the `validate_etag` task. If the
+    `CSV_FILE_PATH` to `CSV_CORRUPT_FILE_PATH` in the `validate_etag` task. If the
     "happy path" is continued, a second data load from S3 to Redshift is triggered,
     which is followed by another data integrity check. A similar "happy/sad path"
     branch ends the DAG.
@@ -92,28 +92,27 @@ with DAG("simple_el_dag_2",
 
     """
     #### Drop Redshift table
-    Drops the Redshift table created in a previous step.
+    Drops the Redshift table if it exists already. This is to make sure that the
+    data in the success and failure cases do not interfere with each other during
+    the data quality check.
     """
     drop_redshift_table = PostgresOperator(
         task_id='drop_table',
         sql="sql/drop_forestfire_table.sql",
-        postgres_conn_id="redshift_default",
-        params={"redshift_table": Variable.get("aws_configs", deserialize_json=True).get("redshift_table")}
+        postgres_conn_id="redshift_default"
     )
 
     """
-    #### Create Redshift Table (Optional)
+    #### Create Redshift Table
     For demo purposes, create a Redshift table to store the forest fire data to.
     The database is not automatically destroyed at the end of the example; ensure
     this is done manually to avoid unnecessary costs. Additionally, set-up may
-    need to be done in Airflow connections to allow access to Redshift. This step
-    may also be accomplished manually; if it is, then the task should be removed below.
+    need to be done in Airflow connections to allow access to Redshift.
     """
     create_redshift_table = PostgresOperator(
         task_id='create_table',
         sql="sql/create_forestfire_table.sql",
-        postgres_conn_id="redshift_default",
-        params={"redshift_table": Variable.get("aws_configs", deserialize_json=True).get("redshift_table")}
+        postgres_conn_id="redshift_default"
     )
 
     """
@@ -122,10 +121,10 @@ with DAG("simple_el_dag_2",
     in the Airflow Variables backend).
     """
     load_to_redshift = S3ToRedshiftOperator(
-        s3_bucket=Variable.get("aws_configs", deserialize_json=True).get("s3_bucket"),
-        s3_key=f'{Variable.get("aws_configs", deserialize_json=True).get("s3_key_prefix")}/{CSV_FILE_PATH}',
+        s3_bucket="{{ var.json.aws_configs.s3_bucket }}",
+        s3_key="{{ var.json.aws_configs.s3_key_prefix }}"+f"/{CSV_FILE_PATH}",
         schema="PUBLIC",
-        table=Variable.get("aws_configs", deserialize_json=True).get("redshift_table"),
+        table="{{ var.json.aws_configs.redshift_table }}",
         copy_options=['csv'],
         task_id='load_to_redshift',
     )

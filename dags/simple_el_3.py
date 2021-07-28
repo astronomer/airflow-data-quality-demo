@@ -19,9 +19,7 @@ CSV_FILE_PATH = f"include/sample_data/{CSV_FILE_NAME}"
 #CSV_CORRUPT_FILE_NAME = "forestfires_corrupt.csv"
 #CSV_CORRUPT_FILE_PATH = f"include/sample_data/{CSV_CORRUPT_FILE_NAME}"
 
-# Uncomment the below two constants to see the "sad path" - make sure to delete
-# any valid records in Redshift first, or the data quality check will still succeed
-# based on the old records.
+# Uncomment the below two constants to see the "sad path" (and comment out the paths above).
 #CSV_FILE_NAME = "forestfires_invalid.csv"
 #CSV_FILE_PATH = f"include/sample_data/{CSV_FILE_NAME}"
 
@@ -100,7 +98,9 @@ with DAG("simple_el_dag_3",
 
     """
     #### Drop Redshift table
-    Drops the Redshift table created in a previous step.
+    Drops the Redshift table if it exists already. This is to make sure that the
+    data in the success and failure cases do not interfere with each other during
+    the data quality check.
     """
     drop_redshift_table = PostgresOperator(
         task_id='drop_table',
@@ -109,12 +109,11 @@ with DAG("simple_el_dag_3",
     )
 
     """
-    #### Create Redshift Table (Optional)
+    #### Create Redshift Table
     For demo purposes, create a Redshift table to store the forest fire data to.
     The database is not automatically destroyed at the end of the example; ensure
     this is done manually to avoid unnecessary costs. Additionally, set-up may
-    need to be done in Airflow connections to allow access to Redshift. This step
-    may also be accomplished manually; if it is, then the task should be removed below.
+    need to be done in Airflow connections to allow access to Redshift.
     """
     create_redshift_table = PostgresOperator(
         task_id='create_table',
