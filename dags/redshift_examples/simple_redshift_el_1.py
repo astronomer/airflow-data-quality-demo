@@ -23,7 +23,7 @@ default_args = {
     "email_on_failure": False
 }
 
-with DAG("simple_el_dag_1",
+with DAG("simple_redshift_el_dag_1",
          default_args=default_args,
          description="A sample Airflow DAG to load data from csv files to S3, then check that all data was uploaded properly.",
          schedule_interval=None,

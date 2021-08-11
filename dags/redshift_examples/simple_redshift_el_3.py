@@ -33,7 +33,7 @@ default_args = {
     "email_on_failure": False
 }
 
-with DAG("simple_el_dag_3",
+with DAG("simple_redshift_el_dag_3",
          default_args=default_args,
          description="A sample Airflow DAG to load data from csv files to S3 and then Redshift, with data integrity and quality checks.",
          schedule_interval=None,
@@ -104,7 +104,7 @@ with DAG("simple_el_dag_3",
     """
     drop_redshift_table = PostgresOperator(
         task_id='drop_table',
-        sql="sql/drop_forestfire_table.sql",
+        sql="sql/drop_redshift_forestfire_table.sql",
         postgres_conn_id="redshift_default"
     )
 
@@ -117,7 +117,7 @@ with DAG("simple_el_dag_3",
     """
     create_redshift_table = PostgresOperator(
         task_id='create_table',
-        sql="sql/create_forestfire_table.sql",
+        sql="sql/create_redshift_forestfire_table.sql",
         postgres_conn_id="redshift_default"
     )
 
@@ -143,7 +143,7 @@ with DAG("simple_el_dag_3",
     validate_redshift = SQLCheckOperator(
         task_id="validate_redshift",
         conn_id="redshift_default",
-        sql="sql/validate_forestfire_redshift_load.sql",
+        sql="sql/validate_redshift_forestfire_load.sql",
         params={"filename": CSV_FILE_NAME},
     )
 
@@ -160,7 +160,7 @@ with DAG("simple_el_dag_3",
                 SQLCheckOperator(
                     task_id=f"forestfire_row_quality_check_{id}",
                     conn_id="redshift_default",
-                    sql="sql/forestfire_row_quality_check.sql",
+                    sql="sql/row_quality_redshift_forestfire_check.sql",
                     params=values,
                 )
 

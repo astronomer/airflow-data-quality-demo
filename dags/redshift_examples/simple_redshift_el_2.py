@@ -26,7 +26,7 @@ default_args = {
     "email_on_failure": False
 }
 
-with DAG("simple_el_dag_2",
+with DAG("simple_redshift_el_dag_2",
          default_args=default_args,
          description="A sample Airflow DAG to load data from csv files to S3 and then Redshift, with data integrity checks.",
          schedule_interval=None,
@@ -98,7 +98,7 @@ with DAG("simple_el_dag_2",
     """
     drop_redshift_table = PostgresOperator(
         task_id='drop_table',
-        sql="sql/drop_forestfire_table.sql",
+        sql="sql/drop_redshift_forestfire_table.sql",
         postgres_conn_id="redshift_default"
     )
 
@@ -111,7 +111,7 @@ with DAG("simple_el_dag_2",
     """
     create_redshift_table = PostgresOperator(
         task_id='create_table',
-        sql="sql/create_forestfire_table.sql",
+        sql="sql/create_redshift_forestfire_table.sql",
         postgres_conn_id="redshift_default"
     )
 
@@ -137,7 +137,7 @@ with DAG("simple_el_dag_2",
     validate_redshift = SQLCheckOperator(
         task_id="validate_redshift",
         conn_id="redshift_default",
-        sql="sql/validate_forestfire_redshift_load.sql",
+        sql="sql/validate_redshift_forestfire_load.sql",
         params={"filename": CSV_FILE_NAME},
     )
 
