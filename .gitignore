@@ -6,3 +6,4 @@ airflow_settings.yaml
 .vim/
 Pip*
 *DS_Store
+include/gcloud_key/*
