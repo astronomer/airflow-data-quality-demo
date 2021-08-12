@@ -34,31 +34,20 @@ with DAG('simple_bigquery_el',
          schedule_interval=None,
          catchup=False) as dag:
     """
-    ### Simple EL Pipeline with Data Integrity and Quality Checks
+    ### Simple EL Pipeline with Data Quality Checks Using BigQuery
 
     Before running the DAG, set the following in an Airflow or Environment Variable:
     - key: gcp_project_id
       value: [gcp_project_id]
-    - key: connector_id
-      value: [connector_id]
-    - key: location
-      value: [project_location]
-    Fully replacing [gcp_project_id] & [connector_id] with the actual IDs.
+    Fully replacing [gcp_project_id] with the actual ID.
+
+    Ensure you have a connection to GCP, using a role with access to BigQuery
+    and the ability to create, modify, and delete datasets and tables.
 
     What makes this a simple data quality case is:
     1. Absolute ground truth: the local CSV file is considered perfect and immutable.
     2. No transformations or business logic.
     3. Exact values of data to quality check are known.
-
-    Tasks:
-        1. Create dataset with BigQueryCreateEmptyDatasetOperator
-        2. Create table with BigQueryCreateEmptyTableOperator
-        3. Check table exists with BigQueryTableExistenceSensor
-        3. Insert data to table with BigQueryInsertJobOperator
-        4. Validate data with
-            a. BigQueryValueCheckOperator for row count
-            b. BigQueryCheckOperator for data validation
-        5. Delete dataset with BigQueryDeleteDatasetOperator
     """
 
     """
@@ -67,7 +56,7 @@ with DAG('simple_bigquery_el',
     """
     create_dataset = BigQueryCreateEmptyDatasetOperator(
         task_id="create_dataset",
-        dataset_id=DATASET_NAME
+        dataset_id=DATASET
     )
 
     """
@@ -115,7 +104,18 @@ with DAG('simple_bigquery_el',
         task_id="insert_query",
         configuration={
             "query": {
-                "query": "{% include 'load_bigquery_forestfire_data.sql' %}",
+                "query": f"""
+                    INSERT {DATASET}.{TABLE} VALUES
+                      (1,2,'aug','fri',91,166.9,752.6,7.1,25.9,41,3.6,0,0),
+                      (2,2,'feb','mon',84,9.3,34,2.1,13.9,40,5.4,0,0),
+                      (3,4,'mar','sat',69,2.4,15.5,0.7,17.4,24,5.4,0,0),
+                      (4,4,'mar','mon',87.2,23.9,64.7,4.1,11.8,35,1.8,0,0),
+                      (5,5,'mar','sat',91.7,35.8,80.8,7.8,15.1,27,5.4,0,0),
+                      (6,5,'sep','wed',92.9,133.3,699.6,9.2,26.4,21,4.5,0,0),
+                      (7,5,'mar','fri',86.2,26.2,94.3,5.1,8.2,51,6.7,0,0),
+                      (8,6,'mar','fri',91.7,33.3,77.5,9,8.3,97,4,0.2,0),
+                      (9,9,'feb','thu',84.2,6.8,26.6,7.7,6.7,79,3.1,0,0);
+                """,
                 "useLegacySql": False,
             }
         },
@@ -131,22 +131,22 @@ with DAG('simple_bigquery_el',
             ffv_json = json.load(ffv)
             for id, values in ffv_json.items():
                 BigQueryCheckOperator(
-                    task_id="check_row_data",
+                    task_id=f"check_row_data_{id}",
                     sql=f"""
                         SELECT ID,
-                          CASE WHEN y {{ 'IS ' + values['y'] if values['y'] == 'NULL' else '= ' + values['y'] }} THEN 1 ELSE 0 END AS y_check,
-                          CASE WHEN month  {{ 'IS ' + values['month'] if values['month'] == 'NULL' else '= ' + values['month'] }} THEN 1 ELSE 0 END AS month_check,
-                          CASE WHEN day {{ 'IS ' + values['day'] if values['day'] == 'NULL' else '= ' + values['day'] }} THEN 1 ELSE 0 END AS day_check,
-                          CASE WHEN ffmc {{ 'IS ' + values['ffmc'] if values['ffmc'] == 'NULL' else '= ' + values['ffmc'] }} THEN 1 ELSE 0 END AS ffmc_check,
-                          CASE WHEN dmc {{ 'IS ' + values['dmc'] if values['dmc'] == 'NULL' else '= ' + values['dmc'] }} THEN 1 ELSE 0 END AS dmc_check,
-                          CASE WHEN dc {{ 'IS ' + values['dc'] if values['dc'] == 'NULL' else '= ' + values['dc'] }} THEN 1 ELSE 0 END AS dc_check,
-                          CASE WHEN isi {{ 'IS ' + values['isi'] if values['isi'] == 'NULL' else '= ' + values['isi'] }} THEN 1 ELSE 0 END AS isi_check,
-                          CASE WHEN temp {{ 'IS ' + values['temp'] if values['temp'] == 'NULL' else '= ' + values['temp'] }} THEN 1 ELSE 0 END AS temp_check,
-                          CASE WHEN rh {{ 'IS ' + values['rh'] if values['rh'] == 'NULL' else '= ' + values['rh'] }} THEN 1 ELSE 0 END AS rh_check,
-                          CASE WHEN wind {{ 'IS ' + values['wind'] if values['wind'] == 'NULL' else '= ' + values['wind'] }} THEN 1 ELSE 0 END AS wind_check,
-                          CASE WHEN rain {{ 'IS ' + values['rain'] if values['rain'] == 'NULL' else '= ' + values['rain'] }} THEN 1 ELSE 0 END AS rain_check,
-                          CASE WHEN area {{ 'IS ' + values['area'] if values['area'] == 'NULL' else '= ' + values['area'] }} THEN 1 ELSE 0 END AS area_check
-                        FROM {DATASET.TABLE}
+                          CASE y WHEN {values['y']} THEN 1 ELSE 0 END AS y_check,
+                          CASE month WHEN '{values['month']}' THEN 1 ELSE 0 END AS month_check,
+                          CASE day WHEN '{values['day']}' THEN 1 ELSE 0 END AS day_check,
+                          CASE ffmc WHEN {values['ffmc']} THEN 1 ELSE 0 END AS ffmc_check,
+                          CASE dmc WHEN {values['dmc']} THEN 1 ELSE 0 END AS dmc_check,
+                          CASE dc WHEN {values['dc']} THEN 1 ELSE 0 END AS dc_check,
+                          CASE isi WHEN {values['isi']} THEN 1 ELSE 0 END AS isi_check,
+                          CASE temp WHEN {values['temp']} THEN 1 ELSE 0 END AS temp_check,
+                          CASE rh WHEN {values['rh']} THEN 1 ELSE 0 END AS rh_check,
+                          CASE wind WHEN {values['wind']} THEN 1 ELSE 0 END AS wind_check,
+                          CASE rain WHEN {values['rain']} THEN 1 ELSE 0 END AS rain_check,
+                          CASE area WHEN {values['area']} THEN 1 ELSE 0 END AS area_check
+                        FROM {DATASET}.{TABLE}
                         WHERE ID = {id}
                     """,
                     use_legacy_sql=False
@@ -177,6 +177,6 @@ with DAG('simple_bigquery_el',
     end = DummyOperator(task_id='end')
 
     begin >> create_dataset >> create_table >> check_table_exists >> load_data
-    load_data >> check_row_data >> delete_dataset
+    load_data >> quality_check_group >> delete_dataset
     load_data >> check_bq_row_count >> delete_dataset
     delete_dataset >> end
