@@ -104,18 +104,7 @@ with DAG('simple_bigquery_el',
         task_id="insert_query",
         configuration={
             "query": {
-                "query": f"""
-                    INSERT {DATASET}.{TABLE} VALUES
-                      (1,2,'aug','fri',91,166.9,752.6,7.1,25.9,41,3.6,0,0),
-                      (2,2,'feb','mon',84,9.3,34,2.1,13.9,40,5.4,0,0),
-                      (3,4,'mar','sat',69,2.4,15.5,0.7,17.4,24,5.4,0,0),
-                      (4,4,'mar','mon',87.2,23.9,64.7,4.1,11.8,35,1.8,0,0),
-                      (5,5,'mar','sat',91.7,35.8,80.8,7.8,15.1,27,5.4,0,0),
-                      (6,5,'sep','wed',92.9,133.3,699.6,9.2,26.4,21,4.5,0,0),
-                      (7,5,'mar','fri',86.2,26.2,94.3,5.1,8.2,51,6.7,0,0),
-                      (8,6,'mar','fri',91.7,33.3,77.5,9,8.3,97,4,0.2,0),
-                      (9,9,'feb','thu',84.2,6.8,26.6,7.7,6.7,79,3.1,0,0);
-                """,
+                "query": "{% include 'sql/load_bigquery_forestfire_data.sql' %}",
                 "useLegacySql": False,
             }
         },
@@ -130,26 +119,14 @@ with DAG('simple_bigquery_el',
         with TaskGroup(group_id="row_quality_checks") as quality_check_group:
             ffv_json = json.load(ffv)
             for id, values in ffv_json.items():
+                values["id"] = id
+                values["dataset"] = DATASET
+                values["table"] = TABLE
                 BigQueryCheckOperator(
                     task_id=f"check_row_data_{id}",
-                    sql=f"""
-                        SELECT ID,
-                          CASE y WHEN {values['y']} THEN 1 ELSE 0 END AS y_check,
-                          CASE month WHEN '{values['month']}' THEN 1 ELSE 0 END AS month_check,
-                          CASE day WHEN '{values['day']}' THEN 1 ELSE 0 END AS day_check,
-                          CASE ffmc WHEN {values['ffmc']} THEN 1 ELSE 0 END AS ffmc_check,
-                          CASE dmc WHEN {values['dmc']} THEN 1 ELSE 0 END AS dmc_check,
-                          CASE dc WHEN {values['dc']} THEN 1 ELSE 0 END AS dc_check,
-                          CASE isi WHEN {values['isi']} THEN 1 ELSE 0 END AS isi_check,
-                          CASE temp WHEN {values['temp']} THEN 1 ELSE 0 END AS temp_check,
-                          CASE rh WHEN {values['rh']} THEN 1 ELSE 0 END AS rh_check,
-                          CASE wind WHEN {values['wind']} THEN 1 ELSE 0 END AS wind_check,
-                          CASE rain WHEN {values['rain']} THEN 1 ELSE 0 END AS rain_check,
-                          CASE area WHEN {values['area']} THEN 1 ELSE 0 END AS area_check
-                        FROM {DATASET}.{TABLE}
-                        WHERE ID = {id}
-                    """,
-                    use_legacy_sql=False
+                    sql="sql/row_quality_bigquery_forestfire_check.sql",
+                    use_legacy_sql=False,
+                    params=values
                 )
 
     """
