@@ -152,6 +152,7 @@ with DAG("great_expectations_bigquery_example",
     """
     delete_dataset = BigQueryDeleteDatasetOperator(
         task_id="delete_dataset",
+        project_id=Variable.get("gcp_project_id"),
         dataset_id=BQ_DATASET,
         delete_contents=True
     )
