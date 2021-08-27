@@ -14,19 +14,10 @@ SNOWFLAKE_DATABASE = 'DWH_LEGACY'
 SNOWFLAKE_ROLE = 'BENJI'
 SNOWFLAKE_FORESTFIRE_TABLE = 'forestfires'
 
-# These args will get passed on to each operator
-# You can override them on a per-task basis during operator initialization
-default_args = {
-    'owner': 'astronomer',
-    'depends_on_past': False,
-    'start_date': datetime(2021, 1, 1),
-    'email': ['noreply@astronomer.io'],
-    'email_on_failure': False
-}
-
 with DAG('simple_snowflake_el',
          default_args=default_args,
          description='Example DAG showcasing loading and data quality checking with Snowflake.',
+         start_date=datetime(2021, 1, 1),
          schedule_interval=None,
          catchup=False) as dag:
     """
