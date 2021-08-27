@@ -6,7 +6,6 @@ from airflow.models import Variable
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from airflow.providers.amazon.aws.transfers.s3_to_redshift import S3ToRedshiftOperator
 from airflow.providers.postgres.operators.postgres import PostgresOperator
-from airflow.providers.postgres.hooks.postgres import PostgresHook
 from airflow.operators.sql import SQLCheckOperator
 from airflow.utils.task_group import TaskGroup
 
@@ -23,18 +22,8 @@ CSV_FILE_PATH = f"include/sample_data/{CSV_FILE_NAME}"
 #CSV_FILE_NAME = "forestfires_invalid.csv"
 #CSV_FILE_PATH = f"include/sample_data/{CSV_FILE_NAME}"
 
-# These args will get passed on to each operator
-# You can override them on a per-task basis during operator initialization
-default_args = {
-    "owner": "astronomer",
-    "depends_on_past": False,
-    "start_date": datetime(2021, 7, 7),
-    "email": ["noreply@astronomer.io"],
-    "email_on_failure": False
-}
-
 with DAG("simple_redshift_el_dag_3",
-         default_args=default_args,
+         start_date=datetime(2021, 7, 7),
          description="A sample Airflow DAG to load data from csv files to S3 and then Redshift, with data integrity and quality checks.",
          schedule_interval=None,
          catchup=False) as dag:

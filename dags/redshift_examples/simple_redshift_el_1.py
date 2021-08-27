@@ -13,18 +13,8 @@ CSV_FILE_PATH = f"include/sample_data/{CSV_FILE_NAME}"
 CSV_CORRUPT_FILE_NAME = "forestfires_corrupt.csv"
 CSV_CORRUPT_FILE_PATH = f"include/sample_data/{CSV_CORRUPT_FILE_NAME}"
 
-# These args will get passed on to each operator
-# You can override them on a per-task basis during operator initialization
-default_args = {
-    "owner": "astronomer",
-    "depends_on_past": False,
-    "start_date": datetime(2021, 7, 7),
-    "email": ["noreply@astronomer.io"],
-    "email_on_failure": False
-}
-
 with DAG("simple_redshift_el_dag_1",
-         default_args=default_args,
+         start_date=datetime(2021, 7, 7),
          description="A sample Airflow DAG to load data from csv files to S3, then check that all data was uploaded properly.",
          schedule_interval=None,
          catchup=False) as dag:
