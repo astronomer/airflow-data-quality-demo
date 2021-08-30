@@ -2,8 +2,8 @@ import os
 
 from airflow import DAG
 from airflow.models import Variable
+from airflow.models.baseoperator import chain
 from airflow.operators.dummy_operator import DummyOperator
-from airflow.contrib.operators.gcs_to_bq import GoogleCloudStorageToBigQueryOperator
 from airflow.providers.google.cloud.sensors.bigquery import BigQueryTableExistenceSensor
 from airflow.providers.google.cloud.operators.bigquery import (
     BigQueryCreateEmptyDatasetOperator,
@@ -12,9 +12,11 @@ from airflow.providers.google.cloud.operators.bigquery import (
     BigQueryDeleteDatasetOperator
 )
 from airflow.providers.google.cloud.transfers.local_to_gcs import LocalFilesystemToGCSOperator
+from airflow.providers.google.cloud.transfers.gcs_to_bigquery import GCSToBigQueryOperator
 from airflow.utils.dates import datetime
 from airflow.utils.task_group import TaskGroup
 from great_expectations_provider.operators.great_expectations_bigquery import GreatExpectationsBigQueryOperator
+
 
 BASE_PATH = "/usr/local/airflow/"
 EXPECTATION_FILE = os.path.join(
@@ -80,12 +82,12 @@ with DAG("great_expectations_bigquery_example",
     Moves the data uploaded to GCS in the previous step to BigQuery, where
     Great Expectations can run a test suite against it.
     """
-    transfer_taxi_data = GoogleCloudStorageToBigQueryOperator(
+    transfer_taxi_data = GCSToBigQueryOperator(
         task_id="taxi_data_gcs_to_bigquery",
         bucket=GCP_BUCKET,
         source_objects=[GCP_DATA_DEST],
         skip_leading_rows=1,
-        destination_project_dataset_table="{}.{}.{}".format(Variable.get("gcp_project_id"), BQ_DATASET, BQ_TABLE),
+        destination_project_dataset_table="{}.{}".format(BQ_DATASET, BQ_TABLE),
         schema_fields=[
             {"name": "vendor_id", "type": "INTEGER", "mode": "REQUIRED"},
             {"name": "pickup_datetime", "type": "DATETIME", "mode": "NULLABLE"},
@@ -130,7 +132,7 @@ with DAG("great_expectations_bigquery_example",
     """
     ge_bigquery_validation = GreatExpectationsBigQueryOperator(
         task_id="ge_bigquery_validation",
-        gcp_project=Variable.get("gcp_project_id"),
+        gcp_project="{{ Variable.get('gcp_project_id') }}",
         gcs_bucket=GCP_BUCKET,
         # GE will use a folder "$my_bucket/expectations"
         gcs_expectations_prefix="expectations",
@@ -152,7 +154,7 @@ with DAG("great_expectations_bigquery_example",
     """
     delete_dataset = BigQueryDeleteDatasetOperator(
         task_id="delete_dataset",
-        project_id=Variable.get("gcp_project_id"),
+        project_id="{{ Variable.get('gcp_project_id') }}",
         dataset_id=BQ_DATASET,
         delete_contents=True
     )
@@ -160,13 +162,5 @@ with DAG("great_expectations_bigquery_example",
     begin = DummyOperator(task_id="begin")
     end = DummyOperator(task_id="end")
 
-    (
-        begin
-        >> create_dataset
-        >> upload_taxi_data
-        >> transfer_taxi_data
-        >> upload_expectations_suite
-        >> ge_bigquery_validation
-        >> delete_dataset
-        >> end
-    )
+    chain(begin, create_dataset, upload_taxi_data, transfer_taxi_data,
+          upload_expectations_suite, ge_bigquery_validation, delete_dataset, end)
