@@ -1,5 +1,5 @@
-from airflow import DAG, AirflowException
-from airflow.models import Variable
+from airflow import DAG
+from airflow.models.baseoperator import chain
 from airflow.operators.dummy_operator import DummyOperator
 from airflow.providers.snowflake.operators.snowflake import SnowflakeOperator, SnowflakeCheckOperator, SnowflakeValueCheckOperator
 from airflow.utils.dates import datetime
@@ -8,14 +8,13 @@ from airflow.utils.task_group import TaskGroup
 import json
 
 
-SNOWFLAKE_SCHEMA = 'SANDBOX_BENJI'
-SNOWFLAKE_WAREHOUSE = 'DEMO'
-SNOWFLAKE_DATABASE = 'DWH_LEGACY'
-SNOWFLAKE_ROLE = 'BENJI'
+SNOWFLAKE_SCHEMA = 'SCHEMA'
+SNOWFLAKE_WAREHOUSE = 'WAREHOUSE'
+SNOWFLAKE_DATABASE = 'DATABASE'
+SNOWFLAKE_ROLE = 'ROLE'
 SNOWFLAKE_FORESTFIRE_TABLE = 'forestfires'
 
 with DAG('simple_snowflake_el',
-         default_args=default_args,
          description='Example DAG showcasing loading and data quality checking with Snowflake.',
          start_date=datetime(2021, 1, 1),
          schedule_interval=None,
@@ -112,7 +111,4 @@ with DAG('simple_snowflake_el',
     begin = DummyOperator(task_id='begin')
     end = DummyOperator(task_id='end')
 
-    begin >> create_table >> load_data
-    load_data >> quality_check_group >> delete_table
-    load_data >> check_bq_row_count >> delete_table
-    delete_table >> end
+    chain(begin, create_table, load_data, [quality_check_group, check_bq_row_count], delete_table, end)
