@@ -15,7 +15,7 @@ from airflow.providers.google.cloud.transfers.local_to_gcs import LocalFilesyste
 from airflow.providers.google.cloud.transfers.gcs_to_bigquery import GCSToBigQueryOperator
 from airflow.utils.dates import datetime
 from airflow.utils.task_group import TaskGroup
-from great_expectations_provider.operators.great_expectations_bigquery import GreatExpectationsBigQueryOperator
+from great_expectations_provider.operators.great_expectations import GreatExpectationsBigQueryOperator
 
 
 BASE_PATH = "/usr/local/airflow/"
@@ -132,7 +132,7 @@ with DAG("great_expectations_bigquery_example",
     """
     ge_bigquery_validation = GreatExpectationsBigQueryOperator(
         task_id="ge_bigquery_validation",
-        gcp_project="{{ Variable.get('gcp_project_id') }}",
+        gcp_project="{{ var.value.gcp_project_id }}",
         gcs_bucket=GCP_BUCKET,
         # GE will use a folder "$my_bucket/expectations"
         gcs_expectations_prefix="expectations",
@@ -144,8 +144,7 @@ with DAG("great_expectations_bigquery_example",
         expectation_suite_name="taxi.demo",
         table=BQ_TABLE,
         bq_dataset_name=BQ_DATASET,
-        bigquery_conn_id="google_cloud_default",
-        email_to=""
+        bigquery_conn_id="google_cloud_default"
     )
 
     """
@@ -154,7 +153,7 @@ with DAG("great_expectations_bigquery_example",
     """
     delete_dataset = BigQueryDeleteDatasetOperator(
         task_id="delete_dataset",
-        project_id="{{ Variable.get('gcp_project_id') }}",
+        project_id="{{ var.value.gcp_project_id }}",
         dataset_id=BQ_DATASET,
         delete_contents=True
     )
