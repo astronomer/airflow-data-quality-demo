@@ -1,4 +1,5 @@
 from airflow import DAG, AirflowException
+from airflow.models.baseoperator import chain
 from airflow.decorators import task
 from airflow.operators.dummy_operator import DummyOperator
 from airflow.utils.dates import datetime
@@ -81,18 +82,6 @@ with DAG("simple_redshift_el_dag_2",
     validate_file = validate_etag(upload_file)
 
     """
-    #### Drop Redshift table
-    Drops the Redshift table if it exists already. This is to make sure that the
-    data in the success and failure cases do not interfere with each other during
-    the data quality check.
-    """
-    drop_redshift_table = PostgresOperator(
-        task_id='drop_table',
-        sql="sql/drop_redshift_forestfire_table.sql",
-        postgres_conn_id="redshift_default"
-    )
-
-    """
     #### Create Redshift Table
     For demo purposes, create a Redshift table to store the forest fire data to.
     The database is not automatically destroyed at the end of the example; ensure
@@ -100,7 +89,7 @@ with DAG("simple_redshift_el_dag_2",
     need to be done in Airflow connections to allow access to Redshift.
     """
     create_redshift_table = PostgresOperator(
-        task_id='create_table',
+        task_id="create_table",
         sql="sql/create_redshift_forestfire_table.sql",
         postgres_conn_id="redshift_default"
     )
@@ -111,12 +100,12 @@ with DAG("simple_redshift_el_dag_2",
     in the Airflow Variables backend).
     """
     load_to_redshift = S3ToRedshiftOperator(
+        task_id="load_to_redshift",
         s3_bucket="{{ var.json.aws_configs.s3_bucket }}",
         s3_key="{{ var.json.aws_configs.s3_key_prefix }}"+f"/{CSV_FILE_PATH}",
         schema="PUBLIC",
         table="{{ var.json.aws_configs.redshift_table }}",
-        copy_options=['csv'],
-        task_id='load_to_redshift',
+        copy_options=["csv"]
     )
 
     """
@@ -131,9 +120,25 @@ with DAG("simple_redshift_el_dag_2",
         params={"filename": CSV_FILE_NAME},
     )
 
+    """
+    #### Drop Redshift table
+    Drops the Redshift table if it exists already. This is to make sure that the
+    data in the success and failure cases do not interfere with each other during
+    the data quality check.
+    """
+    drop_redshift_table = PostgresOperator(
+        task_id="drop_table",
+        sql="sql/drop_redshift_forestfire_table.sql",
+        postgres_conn_id="redshift_default"
+    )
+
     done = DummyOperator(task_id="done")
 
-    validate_file >> create_redshift_table
-    create_redshift_table >> load_to_redshift
-    load_to_redshift >> validate_redshift
-    validate_redshift >> done
+    chain(
+        validate_file,
+        create_redshift_table,
+        load_to_redshift,
+        validate_redshift,
+        drop_redshift_table,
+        done
+    )
