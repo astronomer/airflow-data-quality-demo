@@ -18,6 +18,11 @@ The Astronomer CLI and Docker installed locally are needed to run all DAGs in th
 #### Snowflake DAGs:
 - A Snowflake account
 
+#### Great Expectation (BigQuery) DAGs:
+- A GCP account
+- A service role with create, modify, and delete privileges on BigQuery & read and write privileges on Google Cloud Storage
+- An active GCP project with BigQuery and GCS
+
 ### Getting Started
 The easiest way to run these example DAGs is to use the Astronomer CLI to get an Airflow instance up and running locally:
 1. [Install the Astronomer CLI](https://www.astronomer.io/docs/cloud/stable/develop/cli-quickstart).
@@ -44,3 +49,7 @@ Variables needed are specified in each DAG and can be set under `Admin -> Variab
 #### Snowflake DAGs:
 
 In addition to the Getting Started steps, a connection to Snowflake is needed to run DAGs. Under `Admin -> Connections` in the Airflow UI, add a new connection with Conn ID as `snowflake_default`. The connection type is `Snowflake`. The host field should be the full URL that you use to log into Snowflake, for example `https://[account].[region].snowflakecomputing.com`. Fill out the `Login`, `Password`, `Schema`, `Account`, `Database`, `Region`, `Role`, and `Warehouse` fields with your information.
+
+#### Great Expectations DAGs:
+
+In addition to the Getting Started steps, Great Expectations requires connections when using outside sources. For the `simple_great_expectations_el` DAG, ensure `GE_DATA_CONTEXT_ROOT_DIR` in the Dockerfile is pointing to the correct Great Expectations root. If you have made no changes to this repository and plan to use the example suite, it is pointing in the right place. For the `simple_great_expectations_bigquery_el` DAG, a Google Cloud connection must be added to Airflow; instructions can be found in the BigQuery DAGs section of this README. The only modification is that the permissions associated with the Google Service Account must also include read and write access to Google Cloud Storage.
