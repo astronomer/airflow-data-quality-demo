@@ -52,4 +52,8 @@ In addition to the Getting Started steps, a connection to Snowflake is needed to
 
 #### Great Expectations DAGs:
 
-In addition to the Getting Started steps, Great Expectations requires connections when using outside sources. For the `simple_great_expectations_el` DAG, ensure `GE_DATA_CONTEXT_ROOT_DIR` in the Dockerfile is pointing to the correct Great Expectations root. If you have made no changes to this repository and plan to use the example suite, it is pointing in the right place. For the `simple_great_expectations_bigquery_el` DAG, a Google Cloud connection must be added to Airflow; instructions can be found in the BigQuery DAGs section of this README. The only modification is that the permissions associated with the Google Service Account must also include read and write access to Google Cloud Storage.
+In addition to the Getting Started steps, Great Expectations requires connections when using outside sources. For the `simple_great_expectations_el` DAG, ensure `GE_DATA_CONTEXT_ROOT_DIR` in the Dockerfile is pointing to the correct Great Expectations root. If you have made no changes to this repository and plan to use the example suite, it is pointing in the right place. For the `simple_great_expectations_bigquery_el` DAG, a Google Cloud connection must be added to Airflow; instructions can be found in the BigQuery DAGs section of this README. The only modification is that the permissions associated with the Google Service Account must also include read and write access to Google Cloud Storage. Additionally, an environment variable needs to be set for the GCP keyfile, either in a `.env` file (preferred) or the Dockerfile (fine if it is not committed); it should look like the following:
+
+`GOOGLE_APPLICATION_CREDENTIALS=/usr/local/airflow/include/[path/to/keyfile.json]`
+
+Variables needed are specified in each DAG and can be set under `Admin -> Variables` in the UI.
