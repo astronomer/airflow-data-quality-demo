@@ -1,7 +1,6 @@
 import os
 
 from airflow import DAG
-from airflow.models import Variable
 from airflow.models.baseoperator import chain
 from airflow.operators.dummy_operator import DummyOperator
 from airflow.providers.google.cloud.sensors.bigquery import BigQueryTableExistenceSensor
