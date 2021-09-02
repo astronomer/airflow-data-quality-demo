@@ -1,5 +1,4 @@
 from airflow import DAG, AirflowException
-from airflow.models import Variable
 from airflow.operators.dummy_operator import DummyOperator
 from airflow.providers.google.cloud.sensors.bigquery import BigQueryTableExistenceSensor
 from airflow.providers.google.cloud.operators.bigquery import (
@@ -18,18 +17,9 @@ import json
 
 DATASET='simple_bigquery_example_dag'
 TABLE='forestfires'
-# These args will get passed on to each operator
-# You can override them on a per-task basis during operator initialization
-default_args = {
-    'owner': 'astronomer',
-    'depends_on_past': False,
-    'start_date': datetime(2021, 1, 1),
-    'email': ['noreply@astronomer.io'],
-    'email_on_failure': False
-}
 
 with DAG('simple_bigquery_el',
-         default_args=default_args,
+         start_date=datetime(2021, 1, 1)
          description='Example DAG showcasing loading and data quality checking with BigQuery.',
          schedule_interval=None,
          catchup=False) as dag:
