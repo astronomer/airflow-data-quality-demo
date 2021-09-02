@@ -19,7 +19,7 @@ DATASET='simple_bigquery_example_dag'
 TABLE='forestfires'
 
 with DAG('simple_bigquery_el',
-         start_date=datetime(2021, 1, 1)
+         start_date=datetime(2021, 1, 1),
          description='Example DAG showcasing loading and data quality checking with BigQuery.',
          schedule_interval=None,
          catchup=False) as dag:
