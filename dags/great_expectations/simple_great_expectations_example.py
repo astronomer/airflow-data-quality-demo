@@ -1,7 +1,3 @@
-"""
-A DAG that demonstrates use of the operators in this provider package.
-"""
-
 import os
 
 from datetime import datetime
