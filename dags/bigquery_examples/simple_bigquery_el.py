@@ -90,7 +90,7 @@ with DAG('simple_bigquery_el',
     """
     check_table_exists = BigQueryTableExistenceSensor(
         task_id='check_for_table',
-        project_id=Variable.get('gcp_project_id'),
+        project_id='{{ var.value.gcp_project_id }}',
         dataset_id=DATASET,
         table_id=TABLE,
     )
