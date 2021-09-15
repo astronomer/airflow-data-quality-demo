@@ -25,6 +25,7 @@ with DAG("sql_data_quality",
          description="A sample Airflow DAG to perform data quality checks using SQL Operators.",
          schedule_interval=None,
          default_args={"conn_id": "postgres_default"},
+         template_searchpath="/usr/local/airflow/include/sql/sql_examples/",
          catchup=False) as dag:
     """
     ### SQL Check Operators Data Quality Example
@@ -61,7 +62,7 @@ with DAG("sql_data_quality",
                 values["pickup_datetime"] = trip_dict["pickup_datetime"][i]
                 row_check = SQLCheckOperator(
                     task_id=f"yellow_tripdata_row_quality_check_{i}",
-                    sql="sql/row_quality_yellow_tripdata_check.sql",
+                    sql="row_quality_yellow_tripdata_check.sql",
                     params=values,
                 )
             TASK_DICT[f"quality_check_group_{date}"] = quality_check_group
