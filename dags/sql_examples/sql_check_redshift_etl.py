@@ -63,6 +63,19 @@ with DAG("sql_data_quality_redshift_etl",
         postgres_conn_id="redshift_default"
     )
 
+    with TaskGroup(group_id="row_quality_checks") as quality_check_group:
+        # Create 10 tasks, to spot-check 10 random rows
+        for i in range(0, 10):
+            """
+            #### Run Row-Level Quality Checks
+            Runs a series of checks on different columns of data for a single,
+            randomly chosen row. This acts as a spot-check on data.
+            """
+            SQLCheckOperator(
+                task_id=f"yellow_tripdata_row_quality_check_{i}",
+                sql="row_quality_yellow_tripdata_check.sql"
+            )
+
     """
     #### Run Table-Level Quality Check
     Ensure that the correct number of rows are present in the table.
@@ -193,31 +206,6 @@ with DAG("sql_data_quality_redshift_etl",
                           "TIMEFORMAT AS 'YYYY-MM-DD HH24:MI:SS'"]
         )
 
-        """
-        #### Run Row-Level Quality Checks
-        For each date of data, run checks on 10 rows to ensure basic data quality
-        cases (found in the .sql file) pass.
-        """
-        with TaskGroup(group_id=f"row_quality_checks_{date}") as quality_check_group:
-            trip_dict = pd.read_csv(
-                file_path,
-                header=0,
-                usecols=["vendor_id", "pickup_datetime"],
-                parse_dates=["pickup_datetime"],
-                infer_datetime_format=True
-            ).to_dict()
-            # Test a sample of 10 rows, each csv file has 10,000 rows
-            for row in range(0, 10):
-                values = {}
-                values["vendor_id"] = trip_dict["vendor_id"][row]
-                values["pickup_datetime"] = trip_dict["pickup_datetime"][row]
-                row_check = SQLCheckOperator(
-                    task_id=f"yellow_tripdata_row_quality_check_{row}",
-                    sql="row_quality_yellow_tripdata_check.sql",
-                    params=values,
-                )
-            TASK_DICT[f"quality_check_group_{date}"] = quality_check_group
-
         TASK_DICT[f"delete_upload_date_{date}"] = delete_upload_date(file_path)
 
         chain(
@@ -228,8 +216,7 @@ with DAG("sql_data_quality_redshift_etl",
             create_redshift_table,
             [TASK_DICT[f"load_to_redshift_{date}"]],
             converge_2,
-            [TASK_DICT[f"quality_check_group_{date}"],
-             value_check, interval_check, threshold_check],
+            [quality_check_group, value_check, interval_check, threshold_check],
             drop_redshift_table,
             [TASK_DICT[f"delete_upload_date_{date}"]],
             end
