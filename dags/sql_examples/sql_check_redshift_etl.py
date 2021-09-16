@@ -1,4 +1,5 @@
 from airflow import DAG
+from airflow.models.baseoperator import chain
 from airflow.operators.dummy_operator import DummyOperator
 from airflow.utils.dates import datetime
 from airflow.operators.sql import (
@@ -8,8 +9,7 @@ from airflow.operators.sql import (
     SQLThresholdCheckOperator
 )
 from airflow.utils.task_group import TaskGroup
-from airflow.models import Variable
-from airflow.providers.amazon.aws.hooks.s3 import S3Hook
+from airflow.providers.amazon.aws.transfers.local_to_s3 import LocalFilesystemToS3Operator
 from airflow.providers.amazon.aws.transfers.s3_to_redshift import S3ToRedshiftOperator
 from airflow.providers.postgres.operators.postgres import PostgresOperator
 from airflow.decorators import task
@@ -20,7 +20,7 @@ import pandas as pd
 DATES = ["2019-01", "2019-02"]
 TASK_DICT = {}
 
-with DAG("sql_data_quality",
+with DAG("sql_data_quality_redshift_etl",
          start_date=datetime(2021, 7, 7),
          description="A sample Airflow DAG to perform data quality checks using SQL Operators.",
          schedule_interval=None,
@@ -40,61 +40,15 @@ with DAG("sql_data_quality",
     transfer operators) are changed.
     """
 
+    """
+    #### Dummy operators
+    Help label start and end of dag. Converges exist because lists of tasks
+    cannot set another list as downstream.
+    """
     begin = DummyOperator(task_id="begin")
     end = DummyOperator(task_id="end")
     converge_1 = DummyOperator(task_id="converge_1")
     converge_2 = DummyOperator(task_id="converge_2")
-
-    @task
-    def add_upload_date(file_path, upload_date):
-        """
-        #### Transform Task
-        In general, it is not recommended to perform transform operations in
-        Airflow Tasks, as Airflow is designed to be an orchestrator, not a
-        computation engine. However, the transform is done here as it is a
-        relatively small operation, simply adding an upload_date column to the
-        dataframe for use in the SQL data quality checks later. Doing the
-        transform here also makes this example more easily extensible to the
-        use of other backend datastores.
-        """
-        trip_dict = pd.read_csv(
-            file_path,
-            header=0,
-            parse_dates=["pickup_datetime"],
-            infer_datetime_format=True
-        )
-        trip_dict["upload_date"] = upload_date
-        trip_dict.to_csv(
-            file_path,
-            header=True,
-            index=False
-        )
-
-    add_upload_date_1 = add_upload_date(
-        "/usr/local/airflow/include/data/yellow_tripdata_sample_2019-01.csv",
-        "{{ ds }}"
-    )
-    add_upload_date_2 = add_upload_date(
-        "/usr/local/airflow/include/data/yellow_tripdata_sample_2019-02.csv",
-        "{{ yesterday_ds }}"
-    )
-
-    @task
-    def upload_to_s3(file_path):
-        """
-        #### Upload task
-        Simply loads the file to a specified location in S3.
-        """
-        aws_configs = Variable.get("aws_configs", deserialize_json=True)
-        s3_bucket = aws_configs.get("s3_bucket")
-        s3_key = aws_configs.get("s3_key_prefix") + "/" + file_path
-        s3 = S3Hook()
-        s3.load_file(file_path, s3_key, bucket_name=s3_bucket, replace=True)
-        return {"s3_bucket": s3_bucket, "s3_key": s3_key}
-
-    for date in DATES:
-        TASK_DICT[f"upload_{date}"] = upload_to_s3(
-            f"include/data/yellow_tripdata_sample_{date}.csv")
 
     """
     #### Create Redshift Table
@@ -108,49 +62,6 @@ with DAG("sql_data_quality",
         sql="create_redshift_yellow_tripdata_table.sql",
         postgres_conn_id="redshift_default"
     )
-
-    """
-    #### Second load task
-    Loads the S3 data from the previous load to a Redshift table (specified
-    in the Airflow Variables backend).
-    """
-    for date in DATES:
-        TASK_DICT[f"load_to_redshift_{date}"] = S3ToRedshiftOperator(
-            task_id=f"load_to_redshift_{date}",
-            s3_bucket="{{ var.json.aws_configs.s3_bucket }}",
-            s3_key="{{ var.json.aws_configs.s3_key_prefix }}"
-            + f"/include/data/yellow_tripdata_sample_{date}.csv",
-            schema="PUBLIC",
-            table="{{ var.json.aws_configs.redshift_table }}",
-            copy_options=["csv", "ignoreheader 1",
-                          "TIMEFORMAT AS 'YYYY-MM-DD HH24:MI:SS'"]
-        )
-
-    """
-    #### Run Row-Level Quality Checks
-    For each date of data, run checks on 10 rows to ensure basic data quality
-    cases (found in the .sql file) pass.
-    """
-    for date in DATES:
-        with TaskGroup(group_id=f"row_quality_checks_{date}") as quality_check_group:
-            trip_dict = pd.read_csv(
-                f"/usr/local/airflow/include/data/yellow_tripdata_sample_{date}.csv",
-                header=0,
-                usecols=["vendor_id", "pickup_datetime"],
-                parse_dates=["pickup_datetime"],
-                infer_datetime_format=True
-            ).to_dict()
-            # Test a sample of 10 rows, each csv file has 10,000 rows
-            for i in range(0, 10):
-                values = {}
-                values["vendor_id"] = trip_dict["vendor_id"][i]
-                values["pickup_datetime"] = trip_dict["pickup_datetime"][i]
-                row_check = SQLCheckOperator(
-                    task_id=f"yellow_tripdata_row_quality_check_{i}",
-                    sql="row_quality_yellow_tripdata_check.sql",
-                    params=values,
-                )
-            TASK_DICT[f"quality_check_group_{date}"] = quality_check_group
 
     """
     #### Run Table-Level Quality Check
@@ -200,6 +111,31 @@ with DAG("sql_data_quality",
     )
 
     @task
+    def add_upload_date(file_path, upload_date):
+        """
+        #### Transform Task
+        In general, it is not recommended to perform transform operations in
+        Airflow Tasks, as Airflow is designed to be an orchestrator, not a
+        computation engine. However, the transform is done here as it is a
+        relatively small operation, simply adding an upload_date column to the
+        dataframe for use in the SQL data quality checks later. Doing the
+        transform here also makes this example more easily extensible to the
+        use of other backend datastores.
+        """
+        trip_dict = pd.read_csv(
+            file_path,
+            header=0,
+            parse_dates=["pickup_datetime"],
+            infer_datetime_format=True
+        )
+        trip_dict["upload_date"] = upload_date
+        trip_dict.to_csv(
+            file_path,
+            header=True,
+            index=False
+        )
+
+    @task
     def delete_upload_date(file_path):
         """
         #### Drop added column
@@ -220,25 +156,81 @@ with DAG("sql_data_quality",
             index=False
         )
 
-    for date in DATES:
-        TASK_DICT[f"delete_upload_date_{date}"] = delete_upload_date(
-            f"/usr/local/airflow/include/data/yellow_tripdata_sample_{date}.csv"
+    for i, date in enumerate(DATES):
+        file_path = f"/usr/local/airflow/include/data/yellow_tripdata_sample_{date}.csv"
+
+        TASK_DICT[f"add_upload_date_{date}"] = add_upload_date(
+            file_path,
+            "{{ macros.ds_add(ds, " + str(-i) + ") }}"
         )
 
-    (
-        begin
-        >> [add_upload_date_1, add_upload_date_2]
-        >> converge_1
-        >> [TASK_DICT["upload_2019-01"], TASK_DICT["upload_2019-02"]]
-        >> create_redshift_table
-        >> [TASK_DICT["load_to_redshift_2019-01"],
-            TASK_DICT["load_to_redshift_2019-02"]]
-        >> converge_2
-        >> [TASK_DICT["quality_check_group_2019-01"],
-            TASK_DICT["quality_check_group_2019-02"],
-            value_check, interval_check, threshold_check]
-        >> drop_redshift_table
-        >> [TASK_DICT["delete_upload_date_2019-01"],
-            TASK_DICT["delete_upload_date_2019-02"]]
-        >> end
-    )
+        """
+        #### Upload task
+        Simply loads the file to a specified location in S3.
+        """
+        TASK_DICT[f"upload_to_s3_{date}"] = LocalFilesystemToS3Operator(
+            task_id=f"upload_to_s3_{date}",
+            filename=file_path,
+            dest_key="{{ var.json.aws_configs.s3_key_prefix }}/" + file_path,
+            dest_bucket="{{ var.json.aws_configs.s3_bucket }}",
+            aws_conn_id="aws_default",
+            replace=True
+        )
+
+        """
+        #### Redshift load task
+        Loads the S3 data from the previous load to a Redshift table (specified
+        in the Airflow Variables backend).
+        """
+        TASK_DICT[f"load_to_redshift_{date}"] = S3ToRedshiftOperator(
+            task_id=f"load_to_redshift_{date}",
+            s3_bucket="{{ var.json.aws_configs.s3_bucket }}",
+            s3_key="{{ var.json.aws_configs.s3_key_prefix }}/" + file_path,
+            schema="PUBLIC",
+            table="{{ var.json.aws_configs.redshift_table }}",
+            copy_options=["csv",
+                          "ignoreheader 1",
+                          "TIMEFORMAT AS 'YYYY-MM-DD HH24:MI:SS'"]
+        )
+
+        """
+        #### Run Row-Level Quality Checks
+        For each date of data, run checks on 10 rows to ensure basic data quality
+        cases (found in the .sql file) pass.
+        """
+        with TaskGroup(group_id=f"row_quality_checks_{date}") as quality_check_group:
+            trip_dict = pd.read_csv(
+                file_path,
+                header=0,
+                usecols=["vendor_id", "pickup_datetime"],
+                parse_dates=["pickup_datetime"],
+                infer_datetime_format=True
+            ).to_dict()
+            # Test a sample of 10 rows, each csv file has 10,000 rows
+            for row in range(0, 10):
+                values = {}
+                values["vendor_id"] = trip_dict["vendor_id"][row]
+                values["pickup_datetime"] = trip_dict["pickup_datetime"][row]
+                row_check = SQLCheckOperator(
+                    task_id=f"yellow_tripdata_row_quality_check_{row}",
+                    sql="row_quality_yellow_tripdata_check.sql",
+                    params=values,
+                )
+            TASK_DICT[f"quality_check_group_{date}"] = quality_check_group
+
+        TASK_DICT[f"delete_upload_date_{date}"] = delete_upload_date(file_path)
+
+        chain(
+            begin,
+            [TASK_DICT[f"add_upload_date_{date}"]],
+            converge_1,
+            [TASK_DICT[f"upload_to_s3_{date}"]],
+            create_redshift_table,
+            [TASK_DICT[f"load_to_redshift_{date}"]],
+            converge_2,
+            [TASK_DICT[f"quality_check_group_{date}"],
+             value_check, interval_check, threshold_check],
+            drop_redshift_table,
+            [TASK_DICT[f"delete_upload_date_{date}"]],
+            end
+        )

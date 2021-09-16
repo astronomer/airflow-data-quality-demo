@@ -31,7 +31,9 @@ with DAG("sql_data_quality",
     ### SQL Check Operators Data Quality Example
 
     Before running the DAG, ensure you have an active and reachable SQL database
-    running, with a connection to that database in an Airflow Connection.
+    running, with a connection to that database in an Airflow Connection, and
+    the data loaded. This DAG **will not** run successfully as-is. For an
+    out-of-the-box working demo, see the sql_data_quality_redshift_etl DAG.
 
     Note: The data files for this example do **not** include an `upload_date`
     column. This column is needed for the interval check, and is added as a
@@ -40,32 +42,6 @@ with DAG("sql_data_quality",
 
     begin = DummyOperator(task_id="begin")
     end = DummyOperator(task_id="end")
-
-    """
-    #### Run Row-Level Quality Checks
-    For each date of data, run checks on 10 rows to ensure basic data quality
-    cases (found in the .sql file) pass.
-    """
-    for date in DATES:
-        with TaskGroup(group_id=f"row_quality_checks_{date}") as quality_check_group:
-            trip_dict = pd.read_csv(
-                f"/usr/local/airflow/include/data/yellow_tripdata_sample_{date}.csv",
-                header=0,
-                usecols=["vendor_id", "pickup_datetime"],
-                parse_dates=["pickup_datetime"],
-                infer_datetime_format=True
-            ).to_dict()
-            # Test a sample of 10 rows, each csv file has 10,000 rows
-            for i in range(0, 10):
-                values = {}
-                values["vendor_id"] = trip_dict["vendor_id"][i]
-                values["pickup_datetime"] = trip_dict["pickup_datetime"][i]
-                row_check = SQLCheckOperator(
-                    task_id=f"yellow_tripdata_row_quality_check_{i}",
-                    sql="row_quality_yellow_tripdata_check.sql",
-                    params=values,
-                )
-            TASK_DICT[f"quality_check_group_{date}"] = quality_check_group
 
     """
     #### Run Table-Level Quality Check
@@ -102,14 +78,39 @@ with DAG("sql_data_quality",
         max_threshold=8
     )
 
-    chain(
-        begin,
-        [
-            TASK_DICT["quality_check_group_2019-01"],
-            TASK_DICT["quality_check_group_2019-02"],
-            value_check,
-            interval_check,
-            threshold_check
-        ],
-        end
-    )
+    """
+    #### Run Row-Level Quality Checks
+    For each date of data, run checks on 10 rows to ensure basic data quality
+    cases (found in the .sql file) pass.
+    """
+    for date in DATES:
+        with TaskGroup(group_id=f"row_quality_checks_{date}") as quality_check_group:
+            trip_dict = pd.read_csv(
+                f"/usr/local/airflow/include/data/yellow_tripdata_sample_{date}.csv",
+                header=0,
+                usecols=["vendor_id", "pickup_datetime"],
+                parse_dates=["pickup_datetime"],
+                infer_datetime_format=True
+            ).to_dict()
+            # Test a sample of 10 rows, each csv file has 10,000 rows
+            for i in range(0, 10):
+                values = {}
+                values["vendor_id"] = trip_dict["vendor_id"][i]
+                values["pickup_datetime"] = trip_dict["pickup_datetime"][i]
+                row_check = SQLCheckOperator(
+                    task_id=f"yellow_tripdata_row_quality_check_{i}",
+                    sql="row_quality_yellow_tripdata_check.sql",
+                    params=values,
+                )
+            TASK_DICT[f"quality_check_group_{date}"] = quality_check_group
+
+        chain(
+            begin,
+            [
+                TASK_DICT[f"quality_check_group_{date}"],
+                value_check,
+                interval_check,
+                threshold_check
+            ],
+            end
+        )
