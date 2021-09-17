@@ -69,7 +69,11 @@ with DAG("sql_data_quality_redshift_etl",
             """
             #### Run Row-Level Quality Checks
             Runs a series of checks on different columns of data for a single,
-            randomly chosen row. This acts as a spot-check on data.
+            randomly chosen row. This acts as a spot-check on data. Note: When
+            using the sample data, row level checks may fail. Which column(s) of
+            the row that failed may be checked in the logs. To further diagnose
+            the issue, run a modified query directly in Redshift's query editor
+            to check individual values against calculations and expectations.
             """
             SQLCheckOperator(
                 task_id=f"yellow_tripdata_row_quality_check_{i}",
