@@ -1,5 +1,6 @@
 from airflow import DAG, AirflowException
 from airflow.decorators import task
+from airflow.models import Variable
 from airflow.operators.dummy_operator import DummyOperator
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from airflow.providers.amazon.aws.transfers.local_to_s3 import LocalFilesystemToS3Operator
@@ -59,8 +60,10 @@ with DAG("simple_redshift_el_dag_1",
         was uploaded without errors.
         """
         s3 = S3Hook()
-        obj = s3.get_key(key="{{ var.json.aws_configs.s3_key_prefix }}",
-                         bucket_name="{{ var.json.aws_configs.s3_bucket }}")
+        aws_configs = Variable.get("aws_configs", deserialize_json=True)
+        obj = s3.get_key(
+            key=f"{aws_configs.get('s3_key_prefix')}/{CSV_FILE_PATH}",
+            bucket_name=aws_configs.get("s3_bucket"))
         obj_etag = obj.e_tag.strip('"')
         # Change `CSV_FILE_PATH` to `CSV_CORRUPT_FILE_PATH` for the "sad path".
         file_hash = hashlib.md5(
