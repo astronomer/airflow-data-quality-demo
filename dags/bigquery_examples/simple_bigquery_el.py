@@ -95,7 +95,7 @@ with DAG('simple_bigquery_el',
         task_id="insert_query",
         configuration={
             "query": {
-                "query": "{% include 'sql/load_bigquery_forestfire_data.sql' %}",
+                "query": "{% include 'load_bigquery_forestfire_data.sql' %}",
                 "useLegacySql": False,
             }
         },
