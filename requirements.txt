@@ -1,4 +1,4 @@
-apache-airflow-providers-amazon==1.4.0
+apache-airflow-providers-amazon==2.2.0
 apache-airflow-providers-google==5.0.0
 apache-airflow-providers-postgres==1.0.2
 apache-airflow-providers-snowflake==2.1.0
