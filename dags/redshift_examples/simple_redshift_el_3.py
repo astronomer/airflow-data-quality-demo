@@ -28,6 +28,7 @@ with DAG("simple_redshift_el_dag_3",
          start_date=datetime(2021, 7, 7),
          description="A sample Airflow DAG to load data from csv files to S3 and then Redshift, with data integrity and quality checks.",
          schedule_interval=None,
+         template_searchpath="/usr/local/airflow/include/sql/redshift_examples/",
          catchup=False) as dag:
     """
     ### Simple EL Pipeline with Data Integrity and Quality Checks 3
@@ -96,7 +97,7 @@ with DAG("simple_redshift_el_dag_3",
     """
     create_redshift_table = PostgresOperator(
         task_id="create_table",
-        sql="sql/create_redshift_forestfire_table.sql",
+        sql="create_redshift_forestfire_table.sql",
         postgres_conn_id="redshift_default"
     )
 
@@ -122,7 +123,7 @@ with DAG("simple_redshift_el_dag_3",
     validate_redshift = SQLCheckOperator(
         task_id="validate_redshift",
         conn_id="redshift_default",
-        sql="sql/validate_redshift_forestfire_load.sql",
+        sql="validate_redshift_forestfire_load.sql",
         params={"filename": CSV_FILE_NAME},
     )
 
@@ -139,7 +140,7 @@ with DAG("simple_redshift_el_dag_3",
                 SQLCheckOperator(
                     task_id=f"forestfire_row_quality_check_{id}",
                     conn_id="redshift_default",
-                    sql="sql/row_quality_redshift_forestfire_check.sql",
+                    sql="row_quality_redshift_forestfire_check.sql",
                     params=values,
                 )
 
@@ -151,7 +152,7 @@ with DAG("simple_redshift_el_dag_3",
     """
     drop_redshift_table = PostgresOperator(
         task_id="drop_table",
-        sql="sql/drop_redshift_forestfire_table.sql",
+        sql="drop_redshift_forestfire_table.sql",
         postgres_conn_id="redshift_default"
     )
 
