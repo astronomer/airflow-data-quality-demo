@@ -15,13 +15,14 @@ from airflow.utils.task_group import TaskGroup
 import json
 
 
-DATASET='simple_bigquery_example_dag'
-TABLE='forestfires'
+DATASET = 'simple_bigquery_example_dag'
+TABLE = 'forestfires'
 
 with DAG('simple_bigquery_el',
          start_date=datetime(2021, 1, 1),
          description='Example DAG showcasing loading and data quality checking with BigQuery.',
          schedule_interval=None,
+         template_searchpath="/usr/local/airflow/include/sql/bigquery_examples/",
          catchup=False) as dag:
     """
     ### Simple EL Pipeline with Data Quality Checks Using BigQuery
@@ -114,7 +115,7 @@ with DAG('simple_bigquery_el',
                 values["table"] = TABLE
                 BigQueryCheckOperator(
                     task_id=f"check_row_data_{id}",
-                    sql="sql/row_quality_bigquery_forestfire_check.sql",
+                    sql="row_quality_bigquery_forestfire_check.sql",
                     use_legacy_sql=False,
                     params=values
                 )

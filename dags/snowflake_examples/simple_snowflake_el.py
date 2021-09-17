@@ -18,6 +18,7 @@ with DAG('simple_snowflake_el',
          description='Example DAG showcasing loading and data quality checking with Snowflake.',
          start_date=datetime(2021, 1, 1),
          schedule_interval=None,
+         template_searchpath="/usr/local/airflow/include/sql/snowflake_examples/",
          catchup=False) as dag:
     """
     ### Simple EL Pipeline with Data Quality Checks Using Snowflake
@@ -43,7 +44,7 @@ with DAG('simple_snowflake_el',
     """
     create_table = SnowflakeOperator(
         task_id="create_table",
-        sql="{% include 'sql/create_snowflake_table.sql' %}",
+        sql="{% include 'create_snowflake_table.sql' %}",
         warehouse=SNOWFLAKE_WAREHOUSE,
         database=SNOWFLAKE_DATABASE,
         schema=SNOWFLAKE_SCHEMA,
@@ -54,16 +55,17 @@ with DAG('simple_snowflake_el',
     """
     #### Insert data
     Insert data into the Snowflake table using an existing SQL query (stored in
-    the local sql/ directory).
+    the include/sql/snowflake_examples/ directory).
     """
     load_data = SnowflakeOperator(
         task_id="insert_query",
-        sql="{% include 'sql/load_snowflake_forestfire_data.sql' %}",
+        sql="{% include 'load_snowflake_forestfire_data.sql' %}",
         warehouse=SNOWFLAKE_WAREHOUSE,
         database=SNOWFLAKE_DATABASE,
         schema=SNOWFLAKE_SCHEMA,
         role=SNOWFLAKE_ROLE,
-        params={"database_name": SNOWFLAKE_DATABASE, "table_name": SNOWFLAKE_FORESTFIRE_TABLE}
+        params={"database_name": SNOWFLAKE_DATABASE,
+                "table_name": SNOWFLAKE_FORESTFIRE_TABLE}
     )
 
     """
@@ -80,7 +82,7 @@ with DAG('simple_snowflake_el',
                 values["table_name"] = SNOWFLAKE_FORESTFIRE_TABLE
                 SnowflakeCheckOperator(
                     task_id=f"check_row_data_{id}",
-                    sql="sql/row_quality_snowflake_forestfire_check.sql",
+                    sql="row_quality_snowflake_forestfire_check.sql",
                     params=values
                 )
 
@@ -100,7 +102,7 @@ with DAG('simple_snowflake_el',
     """
     delete_table = SnowflakeOperator(
         task_id="delete_table",
-        sql="{% include 'sql/delete_snowflake_table.sql' %}",
+        sql="{% include 'delete_snowflake_table.sql' %}",
         warehouse=SNOWFLAKE_WAREHOUSE,
         database=SNOWFLAKE_DATABASE,
         schema=SNOWFLAKE_SCHEMA,
@@ -111,4 +113,5 @@ with DAG('simple_snowflake_el',
     begin = DummyOperator(task_id='begin')
     end = DummyOperator(task_id='end')
 
-    chain(begin, create_table, load_data, [quality_check_group, check_bq_row_count], delete_table, end)
+    chain(begin, create_table, load_data, [
+          quality_check_group, check_bq_row_count], delete_table, end)
