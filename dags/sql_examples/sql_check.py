@@ -95,11 +95,6 @@ with DAG("sql_data_quality",
 
         chain(
             begin,
-            [
-                quality_check_group,
-                value_check,
-                interval_check,
-                threshold_check
-            ],
+            [quality_check_group, value_check, interval_check, threshold_check],
             end
         )
