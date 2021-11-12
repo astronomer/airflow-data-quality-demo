@@ -137,7 +137,8 @@ with DAG(
     delete_snowflake_table = SnowflakeOperator(
         task_id="delete_snowflake_table",
         sql="{% include 'delete_snowflake_table.sql' %}",
-        params={"table_name": TABLE}
+        params={"table_name": TABLE},
+        trigger_rule="all_done"
     )
 
     """
