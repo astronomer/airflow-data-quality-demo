@@ -41,20 +41,16 @@ with DAG(
     catchup=False,
 ) as dag:
     """
-    ### SQL Check Operators Data Quality Example
+    ### SQL Check Operators Data Quality Example with Snowflake
 
-    Before running the DAG, set the following in an Airflow or Environment Variable:
-    - key:
-
-    Ensure a Snowflake Warehouse, Database, Schema, and Role exist for the Snowflake
-    connection provided to the Operator. The names of these data should replace the
-    dummy values at the top of the file.
-
-    A Snowflake Connection is also needed, named `snowflake_default`.
+    Ensure a Snowflake Warehouse, Database, Schema, Role, and S3 Key and Secret
+    exist for the Snowflake connection, named `snowflake_default`. Access to S3
+    is needed for this example. A staging table may need to be created in
+    Snowflake manually.
 
     Note: The data files for this example do **not** include an `upload_date`
     column. This column is needed for the interval check, and is added as a
-    Task in sql_check_redshift_etl.py.
+    Task.
     """
 
     begin = DummyOperator(task_id="begin")
