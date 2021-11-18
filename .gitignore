@@ -7,3 +7,6 @@ airflow_settings.yaml
 Pip*
 *DS_Store
 include/gcloud_key/*
+venv/*
+dag_graph_generator.py
+task_dependency_tree.json
