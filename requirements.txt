@@ -3,3 +3,4 @@ apache-airflow-providers-google==5.0.0
 apache-airflow-providers-postgres==1.0.2
 apache-airflow-providers-snowflake==2.1.0
 airflow-provider-great-expectations==0.0.8
+dbt==0.21.0
