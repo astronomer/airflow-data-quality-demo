@@ -14,7 +14,4 @@ models:
         tests:
           - not_null
           - accepted_values:
-              values: ['feb', 'aug', 'mar', 'sep']
-      - name: ffmc
-        tests:
-          - ffmc_value_check
+              values: ['aug', 'mar', 'sep']
