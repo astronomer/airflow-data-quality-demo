@@ -1,0 +1,20 @@
+
+version: 2
+
+models:
+  - name: forestfire_test
+    description: "A dbt model of forestfire data."
+    columns:
+      - name: id
+        description: "The primary key for this table"
+        tests:
+          - not_null
+          - unique
+      - name: month
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['aug', 'mar', 'sep']
+      - name: ffmc
+        tests:
+          - ffmc_value_check
