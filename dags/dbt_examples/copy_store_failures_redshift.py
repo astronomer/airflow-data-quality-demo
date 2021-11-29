@@ -1,10 +1,11 @@
 import os
+from dateime import datetime
 
-from airflow.utils.dates import datetime
 from airflow import DAG
-from airflow.operators.bash_operator import BashOperator
+from airflow.operators.bash import BashOperator
 from airflow.providers.postgres.operators.postgres import PostgresOperator
 from airflow.utils.task_group import TaskGroup
+from airflow.utils.TriggerRule import TriggerRule
 
 
 DBT_PROJ_DIR = os.getenv('DBT_PROJECT_DIR_REDSHIFT')
@@ -28,7 +29,7 @@ with DAG('dbt.copy_store_failures_redshift',
       - A Redshift Table created with forestfire data (can be
           created by running the redshift_examples.simple_redshift_el_3 DAG)
       - A dbt profile with a connection to Redshift in include/dbt/.dbt (.dbt
-          directory is .gitignored, this must be generated)
+          directory is in .gitignore, this must be generated)
     """
 
     """
@@ -57,30 +58,37 @@ with DAG('dbt.copy_store_failures_redshift',
     Copy data from each store_failures table
 
     Until (AIP-42)[https://cwiki.apache.org/confluence/display/AIRFLOW/AIP-42%3A+Dynamic+Task+Mapping]
-    is implemented, each task must be hard-coded. One is given as an example.
+    is implemented, each task must be hard-coded. This is due to current
+    limitations in dynamic task mapping, where needed values like 'source_table'
+    cannot be retrieved from Variables or other backend sources.
+
+    One is given as an example.
     """
-    with TaskGroup(group_id='copy_store_failures_group',
-                   default_args={'postgres_conn_id': 'redshift_default'}) as copy_store_failures_group:
+    with TaskGroup(
+        group_id='copy_store_failures_group',
+        default_args={
+            'sql': 'copy_store_failures.sql',
+            'postgres_conn_id': 'redshift_default',
+            'trigger_rule': TriggerRule.ONE_FAILED
+
+        }
+    ) as copy_store_failures_group:
         copy_test_month = PostgresOperator(
             task_id='copy_test_month',
-            sql='{% include "copy_store_failures_snowflake.sql" %}',
             params={
                'source_table': f'"{AUDIT_PATH}"."{MONTH_FAIL_TABLE}"',
                'destination_table': f'"{SCHEMA}"."{MONTH_FAIL_TABLE}"',
                'columns': 'VALUE_FIELD, N_RECORDS'
-               },
-            trigger_rule='one_failed'
+            },
         )
 
         copy_test_ffmc = PostgresOperator(
             task_id='copy_test_ffmc',
-            sql='{% include "copy_store_failures_snowflake.sql" %}',
             params={
                'source_table': f'"{AUDIT_PATH}"."{FFMC_FAIL_TABLE}"',
                'destination_table': f'"{SCHEMA}"."{FFMC_FAIL_TABLE}"',
                'columns': 'FFMC'
-               },
-            trigger_rule='one_failed'
+            },
         )
 
         dbt_run >> dbt_test >> copy_store_failures_group

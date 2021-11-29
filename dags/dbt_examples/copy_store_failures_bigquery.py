@@ -1,8 +1,8 @@
 import os
+from dateime import datetime
 
-from airflow.utils.dates import datetime
 from airflow import DAG
-from airflow.operators.bash_operator import BashOperator
+from airflow.operators.bash import BashOperator
 from airflow.providers.google.cloud.transfers.bigquery_to_bigquery import (
     BigQueryToBigQueryOperator)
 
@@ -25,7 +25,7 @@ with DAG('dbt.copy_store_failures_bigquery',
       - A BigQuery Dataset and Table created with forestfire data (can be
           created by running the bigquery_examples.simple_bigquery_el DAG)
       - A dbt profile with a connection to BigQuery in include/dbt/.dbt (.dbt
-          directory is .gitignored, this must be generated)
+          directory is in .gitignore, this must be generated)
     """
 
     """
@@ -54,7 +54,12 @@ with DAG('dbt.copy_store_failures_bigquery',
     Copy data from each store_failures table
 
     Until (AIP-42)[https://cwiki.apache.org/confluence/display/AIRFLOW/AIP-42%3A+Dynamic+Task+Mapping]
-    is implemented, each task must be hard-coded. One is given as an example.
+    is implemented, each task must be hard-coded. This is due to current
+    limitations in dynamic task mapping, where needed values like
+    'source_project_dataset_tables' cannot be retrieved from Variables or other
+    backend sources.
+
+    One is given as an example.
     """
     copy_store_failures = BigQueryToBigQueryOperator(
         task_id='copy_store_failures',
