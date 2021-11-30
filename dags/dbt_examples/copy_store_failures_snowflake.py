@@ -67,8 +67,6 @@ with DAG('dbt.copy_store_failures_snowflake',
     is implemented, each task must be hard-coded. This is due to current
     limitations in dynamic task mapping, where needed values like 'source_table'
     cannot be retrieved from Variables or other backend sources.
-
-    One is given as an example.
     """
     with TaskGroup(
         group_id='copy_store_failures_group',

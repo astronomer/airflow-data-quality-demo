@@ -62,8 +62,6 @@ with DAG('dbt.copy_store_failures_bigquery',
     limitations in dynamic task mapping, where needed values like
     'source_project_dataset_tables' cannot be retrieved from Variables or other
     backend sources.
-
-    One is given as an example.
     """
     with TaskGroup(
         group_id='copy_store_failures_group',
