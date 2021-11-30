@@ -5,13 +5,17 @@ from airflow import DAG
 from airflow.operators.bash import BashOperator
 from airflow.providers.google.cloud.transfers.bigquery_to_bigquery import (
     BigQueryToBigQueryOperator)
+from airflow.utils.task_group import TaskGroup
+from airflow.utils.trigger_rule import TriggerRule
 
 
 DBT_PROJ_DIR = os.getenv('DBT_PROJECT_DIR_BIGQUERY')
 DBT_PROFILE_DIR = os.getenv('DBT_PROFILE_DIR')
 DATASET = 'simple_bigquery_example_dag'
 AUDIT_PATH = f'{DATASET}_dbt_test__audit'
-FAIL_TABLE = 'accepted_values_forestfire_test_month__aug__mar__sep'
+MONTH_FAIL_TABLE = 'accepted_values_forestfire_test_month__aug__mar__sep'
+FFMC_FAIL_TABLE = 'ffmc_value_check_forestfire_test_ffmc'
+
 
 with DAG('dbt.copy_store_failures_bigquery',
          start_date=datetime(2021, 10, 8),
@@ -61,13 +65,24 @@ with DAG('dbt.copy_store_failures_bigquery',
 
     One is given as an example.
     """
-    copy_store_failures = BigQueryToBigQueryOperator(
-        task_id='copy_store_failures',
-        source_project_dataset_tables=f'{AUDIT_PATH}.{FAIL_TABLE}',
-        destination_project_dataset_table=f'{AUDIT_PATH}_permanent.{FAIL_TABLE}',
-        write_disposition='WRITE_APPEND',
-        create_disposition='CREATE_IF_NEEDED',
-        trigger_rule='one_failed'
-    )
+    with TaskGroup(
+        group_id='copy_store_failures_group',
+        default_args={
+            'trigger_rule': TriggerRule.ONE_FAILED,
+            'write_disposition': 'WRITE_APPEND',
+            'create_disposition': 'CREATE_IF_NEEDED',
+        }
+    ) as copy_store_failures_group:
+        copy_test_month = BigQueryToBigQueryOperator(
+            task_id='copy_test_month',
+            source_project_dataset_tables=f'{AUDIT_PATH}.{MONTH_FAIL_TABLE}',
+            destination_project_dataset_table=f'{AUDIT_PATH}_permanent.{MONTH_FAIL_TABLE}'
+        )
 
-    dbt_run >> dbt_test >> copy_store_failures
+        copy_test_ffmc = BigQueryToBigQueryOperator(
+            task_id='copy_test_ffmc',
+            source_project_dataset_tables=f'{AUDIT_PATH}.{FFMC_FAIL_TABLE}',
+            destination_project_dataset_table=f'{AUDIT_PATH}_permanent.{FFMC_FAIL_TABLE}'
+        )
+
+        dbt_run >> dbt_test >> copy_store_failures_group

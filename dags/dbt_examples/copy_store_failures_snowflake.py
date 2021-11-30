@@ -78,7 +78,6 @@ with DAG('dbt.copy_store_failures_snowflake',
 
         }
     ) as copy_store_failures_group:
-
         copy_test_month = SnowflakeOperator(
             task_id='copy_test_month',
             params={
