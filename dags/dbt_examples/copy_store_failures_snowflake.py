@@ -1,11 +1,11 @@
 import os
-from dateime import datetime
+from datetime import datetime
 
 from airflow import DAG
 from airflow.operators.bash import BashOperator
 from airflow.providers.snowflake.operators.snowflake import SnowflakeOperator
 from airflow.utils.task_group import TaskGroup
-from airflow.utils.TriggerRule import TriggerRule
+from airflow.utils.trigger_rule import TriggerRule
 
 
 DBT_PROJ_DIR = os.getenv('DBT_PROJECT_DIR_SNOWFLAKE')
