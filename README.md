@@ -26,6 +26,9 @@ The Astronomer CLI and Docker installed locally are needed to run all DAGs in th
 #### SQL DAGs:
 - A running SQL database
 
+#### dbt DAGs:
+- dbt profile for a backend (Redshift, BigQuery, or Snowflake)
+
 ### Getting Started
 The easiest way to run these example DAGs is to use the Astronomer CLI to get an Airflow instance up and running locally:
 1. [Install the Astronomer CLI](https://www.astronomer.io/docs/cloud/stable/develop/cli-quickstart).
@@ -59,3 +62,6 @@ Variables needed are specified in each DAG and can be set under `Admin -> Variab
 
 #### SQL DAGs:
 In addition to the Getting Started steps, a SQL database (sqlite, Postgres, MySQL, etc...) needs to be up and running. This database may be local or cloud-hosted. An Airflow Connection to the database is needed.
+
+#### dbt DAGs:
+In addition to the Getting Started steps, a profile for a backend needs to be created under `include/dbt/.dbt/profiles.yml`. This folder is included in `.gitignore`, so it must be created as well. The chosen backend connection must also be set up, for further instructions see the relevant section in this README.
