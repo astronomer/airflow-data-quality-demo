@@ -13,10 +13,6 @@ from airflow.providers.google.cloud.operators.bigquery import (
 from airflow.providers.google.cloud.transfers.local_to_gcs import LocalFilesystemToGCSOperator
 from airflow.providers.google.cloud.transfers.gcs_to_bigquery import GCSToBigQueryOperator
 from great_expectations_provider.operators.great_expectations import GreatExpectationsOperator
-from great_expectations.data_context.types.base import (
-    CheckpointConfig,
-    DataContextConfig
-)
 from include.great_expectations.configs.bigquery_configs import (
     bigquery_data_context_config,
     bigquery_checkpoint_config,
