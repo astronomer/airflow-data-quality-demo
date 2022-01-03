@@ -20,6 +20,7 @@ from include.great_expectations.configs.redshift_configs import (
     redshift_batch_request,
 )
 
+table = "yellow_tripdata"
 
 base_path = Path(__file__).parents[2]
 expectation_file = os.path.join(
@@ -60,7 +61,7 @@ with DAG(
     upload_to_s3 = LocalFilesystemToS3Operator(
         task_id="upload_to_s3",
         filename=data_file,
-        dest_key="{{ var.json.aws_configs.s3_key_prefix }}/" + data_file,
+        dest_key="{{ var.json.aws_configs.s3_key_prefix }}/yellow_tripdata_sample_2019-01.csv",
         dest_bucket="{{ var.json.aws_configs.s3_bucket }}",
         aws_conn_id="aws_default",
         replace=True,
@@ -88,10 +89,10 @@ with DAG(
     load_to_redshift = S3ToRedshiftOperator(
         task_id="load_to_redshift",
         s3_bucket="{{ var.json.aws_configs.s3_bucket }}",
-        s3_key="{{ var.json.aws_configs.s3_key_prefix }}" + f"/{data_file}",
+        s3_key="{{ var.json.aws_configs.s3_key_prefix }}/yellow_tripdata_sample_2019-01.csv",
         schema="PUBLIC",
-        table="{{ var.json.aws_configs.redshift_table }}",
-        copy_options=["csv"],
+        table=table,
+        copy_options=["csv", "ignoreheader 1"],
     )
 
     """
@@ -114,6 +115,7 @@ with DAG(
         task_id="drop_table",
         sql="delete_yellow_tripdata_table.sql",
         postgres_conn_id="redshift_default",
+        params={"table_name": table}
     )
 
     begin = DummyOperator(task_id="begin")

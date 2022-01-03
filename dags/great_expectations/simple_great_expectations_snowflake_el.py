@@ -8,14 +8,18 @@ from airflow import DAG
 from airflow.hooks.base import BaseHook
 from airflow.models.baseoperator import chain
 from airflow.operators.dummy_operator import DummyOperator
-from airflow.providers.amazon.aws.transfers.local_to_s3 import LocalFilesystemToS3Operator
+from airflow.providers.amazon.aws.transfers.local_to_s3 import (
+    LocalFilesystemToS3Operator,
+)
 from airflow.providers.snowflake.operators.snowflake import SnowflakeOperator
 from airflow.providers.snowflake.transfers.s3_to_snowflake import S3ToSnowflakeOperator
-from great_expectations_provider.operators.great_expectations import GreatExpectationsOperator
+from great_expectations_provider.operators.great_expectations import (
+    GreatExpectationsOperator,
+)
 from include.great_expectations.configs.snowflake_configs import (
     snowflake_data_context_config,
     snowflake_checkpoint_config,
-    snowflake_batch_request
+    snowflake_batch_request,
 )
 
 # This table variable is a placeholder, in a live environment, it is better
@@ -47,9 +51,15 @@ with DAG(
     default_args={
         # TODO: update connection get here
         "snowflake_conn_id": SNOWFLAKE_CONN_ID,
-        "warehouse": json.loads(BaseHook.get_connection(SNOWFLAKE_CONN_ID).extra)['extra__snowflake__warehouse'],
-        "database": json.loads(BaseHook.get_connection(SNOWFLAKE_CONN_ID).extra)['extra__snowflake__database'],
-        "role": json.loads(BaseHook.get_connection(SNOWFLAKE_CONN_ID).extra)['extra__snowflake__role'],
+        "warehouse": json.loads(BaseHook.get_connection(SNOWFLAKE_CONN_ID).extra)[
+            "extra__snowflake__warehouse"
+        ],
+        "database": json.loads(BaseHook.get_connection(SNOWFLAKE_CONN_ID).extra)[
+            "extra__snowflake__database"
+        ],
+        "role": json.loads(BaseHook.get_connection(SNOWFLAKE_CONN_ID).extra)[
+            "extra__snowflake__role"
+        ],
         "schema": BaseHook.get_connection(SNOWFLAKE_CONN_ID).schema,
     },
     template_searchpath=f"{base_path}/include/sql/great_expectations_examples/",
@@ -67,7 +77,6 @@ with DAG(
     1. Absolute ground truth: the local CSV file is considered perfect and immutable.
     2. No transformations or business logic.
     3. Exact values of data to quality check are known.
-
     """
 
     begin = DummyOperator(task_id="begin")
@@ -79,9 +88,11 @@ with DAG(
     """
     create_snowflake_table = SnowflakeOperator(
         task_id="create_snowflake_table",
-        sql="{% include 'create_snowflake_yellow_tripdata_table.sql' %}",
-        params={"table_name": TABLE,
-                "schema": BaseHook.get_connection(SNOWFLAKE_CONN_ID).schema}
+        sql="{% include 'create_yellow_tripdata_snowflake_table.sql' %}",
+        params={
+            "table_name": TABLE,
+            "schema": BaseHook.get_connection(SNOWFLAKE_CONN_ID).schema,
+        },
     )
 
     """
@@ -90,9 +101,9 @@ with DAG(
     """
     delete_snowflake_table = SnowflakeOperator(
         task_id="delete_snowflake_table",
-        sql="{% include 'delete_snowflake_table.sql' %}",
+        sql="{% include 'delete_yellow_tripdata_table.sql' %}",
         params={"table_name": TABLE},
-        trigger_rule="all_done"
+        trigger_rule="all_done",
     )
 
     """
@@ -105,7 +116,7 @@ with DAG(
         prefix="test/tripdata",
         stage=f"{TABLE}_STAGE",
         table=TABLE,
-        file_format="(type = 'CSV', skip_header = 1, time_format = 'YYYY-MM-DD HH24:MI:SS')"
+        file_format="(type = 'CSV', skip_header = 1, time_format = 'YYYY-MM-DD HH24:MI:SS')",
     )
 
     for i, date in enumerate(DATES):
@@ -122,7 +133,7 @@ with DAG(
             dest_key="{{ var.json.aws_configs.s3_key_prefix }}/tripdata/" + file_name,
             dest_bucket="{{ var.json.aws_configs.s3_bucket }}",
             aws_conn_id="aws_default",
-            replace=True
+            replace=True,
         )
 
     """
@@ -132,14 +143,14 @@ with DAG(
     ge_snowflake_validation = GreatExpectationsOperator(
         task_id="ge_snowflake_validation",
         data_context_config=data_context_config,
-        checkpoint_config=checkpoint_config
+        checkpoint_config=checkpoint_config,
     )
 
     chain(
-            begin,
-            create_snowflake_table,
-            load_to_snowflake,
-            ge_snowflake_validation,
-            delete_snowflake_table,
-            end
-        )
+        begin,
+        create_snowflake_table,
+        load_to_snowflake,
+        ge_snowflake_validation,
+        delete_snowflake_table,
+        end,
+    )
