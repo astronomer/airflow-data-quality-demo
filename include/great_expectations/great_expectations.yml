@@ -48,6 +48,13 @@ datasources:
       class_name: SqlAlchemyDataset
     class_name: SqlAlchemyDatasource
     credentials: ${my_snowflake_db}
+  my_redshift_db:
+    module_name: great_expectations.datasource
+    data_asset_type:
+      module_name:
+      class_name: SqlAlchemyDataset
+    class_name: SqlAlchemyDatasource
+    credentials: ${my_redshift_db}
 config_variables_file_path: uncommitted/config_variables.yml
 
 # The plugins_directory will be added to your python path for custom modules
