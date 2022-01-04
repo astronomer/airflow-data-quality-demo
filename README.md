@@ -1,6 +1,7 @@
 # Data Quality Demo
 This repo contains DAGs to demonstrate a variety of data quality and integrity checks.
-All DAGs can be found under the dags/ folder, which is partitioned by backend data store. Specific data stores need connections and may require accounts with cloud providers. Further details are provided in the data store specific sections below.
+All DAGs can be found under the dags/ folder, which is partitioned by backend data store
+or provider. Specific data stores need connections and may require accounts with cloud providers. Further details are provided in the data store specific sections below.
 
 ### Requirements
 The Astronomer CLI and Docker installed locally are needed to run all DAGs in this repo. Additional requirements per project are listed below.
@@ -18,10 +19,8 @@ The Astronomer CLI and Docker installed locally are needed to run all DAGs in th
 #### Snowflake DAGs:
 - A Snowflake account
 
-#### Great Expectation (BigQuery) DAGs:
-- A GCP account
-- A service role with create, modify, and delete privileges on BigQuery & read and write privileges on Google Cloud Storage
-- An active GCP project with BigQuery and GCS
+#### Great Expectations DAGs:
+- An account with service roles and tables as specified in one of the data stores above
 
 #### SQL DAGs:
 - A running SQL database
@@ -54,9 +53,9 @@ Variables needed are specified in each DAG and can be set under `Admin -> Variab
 In addition to the Getting Started steps, a connection to Snowflake is needed to run DAGs. Under `Admin -> Connections` in the Airflow UI, add a new connection with Conn ID as `snowflake_default`. The connection type is `Snowflake`. The host field should be the full URL that you use to log into Snowflake, for example `https://[account].[region].snowflakecomputing.com`. Fill out the `Login`, `Password`, `Schema`, `Account`, `Database`, `Region`, `Role`, and `Warehouse` fields with your information.
 
 #### Great Expectations DAGs:
-In addition to the Getting Started steps, Great Expectations requires connections when using outside sources. For the `simple_great_expectations_el` DAG, ensure `GE_DATA_CONTEXT_ROOT_DIR` in the Dockerfile is pointing to the correct Great Expectations root. If you have made no changes to this repository and plan to use the example suite, it is pointing in the right place. For the `simple_great_expectations_bigquery_el` DAG, a Google Cloud connection must be added to Airflow; instructions can be found in the BigQuery DAGs section of this README. The only modification is that the permissions associated with the Google Service Account must also include read and write access to Google Cloud Storage. Additionally, an environment variable needs to be set for the GCP keyfile, either in a `.env` file (preferred) or the Dockerfile (fine if it is not committed); it should look like the following:
+In addition to the Getting Started steps, Great Expectations requires connections when using outside sources. Ensure `GE_DATA_CONTEXT_ROOT_DIR` in the Dockerfile is pointing to the correct Great Expectations root. If you have made no changes to this repository and plan to use the example suite, it is pointing in the right place. Files related to the Great Expectations DAGs can be found under `include/great_expectations/`, and the referenced SQL queries under `include/sql/great_expectations_examples`.
 
-`GOOGLE_APPLICATION_CREDENTIALS=/usr/local/airflow/include/[path/to/keyfile.json]`
+For DAGs requiring a backend connection, see the corresponding section in this README for more information on setting up the Connection. Additionally, a connection must be set in the `config_variables.yml` file under `include/great_expectations/uncommitted/`. See the Great Expectations docs for more information on [BigQuery](https://docs.greatexpectations.io/docs/guides/connecting_to_your_data/database/bigquery/), [Redshift](https://docs.greatexpectations.io/docs/guides/connecting_to_your_data/database/redshift/), or [Snowflake](https://docs.greatexpectations.io/docs/guides/connecting_to_your_data/database/snowflake/). More connections can be added via the Great Expectations CLI tool, or by manually adding them to the `great_expectations.yml` file.
 
 Variables needed are specified in each DAG and can be set under `Admin -> Variables` in the UI.
 
