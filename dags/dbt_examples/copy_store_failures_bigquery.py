@@ -5,6 +5,8 @@ from airflow import DAG
 from airflow.operators.bash import BashOperator
 from airflow.providers.google.cloud.transfers.bigquery_to_bigquery import (
     BigQueryToBigQueryOperator)
+from airflow.providers.google.cloud.operators.bigquery import (
+    BigQueryGetDatasetTablesOperator)
 from airflow.utils.task_group import TaskGroup
 from airflow.utils.trigger_rule import TriggerRule
 
@@ -13,8 +15,6 @@ DBT_PROJ_DIR = os.getenv('DBT_PROJECT_DIR_BIGQUERY')
 DBT_PROFILE_DIR = os.getenv('DBT_PROFILE_DIR')
 DATASET = 'simple_bigquery_example_dag'
 AUDIT_PATH = f'{DATASET}_dbt_test__audit'
-MONTH_FAIL_TABLE = 'accepted_values_forestfire_test_month__aug__mar__sep'
-FFMC_FAIL_TABLE = 'ffmc_value_check_forestfire_test_ffmc'
 
 
 with DAG('dbt.copy_store_failures_bigquery',
@@ -54,14 +54,12 @@ with DAG('dbt.copy_store_failures_bigquery',
         """
     )
 
+    get_store_failures_tables = BigQueryGetDatasetTablesOperator(
+        dataset_id=DATASET
+    )
+
     """
     Copy data from each store_failures table
-
-    Until (AIP-42)[https://cwiki.apache.org/confluence/display/AIRFLOW/AIP-42%3A+Dynamic+Task+Mapping]
-    is implemented, each task must be hard-coded. This is due to current
-    limitations in dynamic task mapping, where needed values like
-    'source_project_dataset_tables' cannot be retrieved from Variables or other
-    backend sources.
     """
     with TaskGroup(
         group_id='copy_store_failures_group',
@@ -71,16 +69,15 @@ with DAG('dbt.copy_store_failures_bigquery',
             'create_disposition': 'CREATE_IF_NEEDED',
         }
     ) as copy_store_failures_group:
-        copy_test_month = BigQueryToBigQueryOperator(
-            task_id='copy_test_month',
-            source_project_dataset_tables=f'{AUDIT_PATH}.{MONTH_FAIL_TABLE}',
-            destination_project_dataset_table=f'{AUDIT_PATH}_permanent.{MONTH_FAIL_TABLE}'
-        )
+        """
+        This line is where we need AIP-42 to pull the result of get_store_failures_tables
+        and create a BigQueryToBigQueryOperator task for each table returned.
+        """
+        for store_failures_table in get_store_failures_tables.xcom_pull():
+            BigQueryToBigQueryOperator(
+                task_id=f'copy_{store_failures_table}',
+                source_project_dataset_tables=f'{AUDIT_PATH}.{store_failures_table}',
+                destination_project_dataset_table=f'{AUDIT_PATH}_permanent.{store_failures_table}'
+            )
 
-        copy_test_ffmc = BigQueryToBigQueryOperator(
-            task_id='copy_test_ffmc',
-            source_project_dataset_tables=f'{AUDIT_PATH}.{FFMC_FAIL_TABLE}',
-            destination_project_dataset_table=f'{AUDIT_PATH}_permanent.{FFMC_FAIL_TABLE}'
-        )
-
-        dbt_run >> dbt_test >> copy_store_failures_group
+    dbt_run >> dbt_test >> get_store_failures_tables >> copy_store_failures_group
