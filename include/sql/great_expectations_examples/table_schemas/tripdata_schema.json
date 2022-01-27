@@ -1,0 +1,47 @@
+{
+    "title": "yellow_tripdata_example",
+    "yellow_tripdata": {
+        "properties": {
+            "VENDOR_ID": {"type": "int", "description": "source_order=1"},
+            "PICKUP_DATETIME": {"type": "timestamp", "description": "source_order=2"},
+            "DROPOFF_DATETIME": {"type": "timestamp", "description": "source_order=3"},
+            "PASSENGER_COUNT": {"type": "int", "description": "source_order=4"},
+            "TRIP_DISTANCE": {"type": "float", "description": "source_order=5"},
+            "RATE_CODE_ID": {"type": "int", "description": "source_order=6"},
+            "STORE_AND_FWD_FLAG": {"type": "varchar(64)", "description": "source_order=7"},
+            "PICKUP_LOCATION_ID": {"type": "int", "description": "source_order=8"},
+            "DROPOFF_LOCATION_ID": {"type": "int", "description": "source_order=9"},
+            "PAYMENT_TYPE": {"type": "int", "description": "source_order=10"},
+            "FARE_AMOUNT": {"type": "float", "description": "source_order=11"},
+            "EXTRA": {"type": "float", "description": "source_order=12"},
+            "MTA_TAX": {"type": "float", "description": "source_order=13"},
+            "TIP_AMOUNT": {"type": "float", "description": "source_order=14"},
+            "TOLLS_AMOUNT": {"type": "float", "description": "source_order=15"},
+            "IMPROVEMENT_SURCHARGE": {"type": "float", "description": "source_order=16"},
+            "TOTAL_AMOUNT": {"type": "float", "description": "source_order=17"},
+            "CONGESTION_SURCHARGE": {"type": "float", "description": "source_order=18"}
+        },
+        "dimensions": ["vendor_id",
+          "pickup_datetime",
+          "dropoff_datetime"],
+        "metrics":["passenger_count",
+          "trip_distance",
+          "rate_code_id",
+          "store_and_fwd_flag",
+          "pickup_location_id",
+          "dropoff_location_id",
+          "payment_type",
+          "fare_amount",
+          "extra",
+          "mta_tax",
+          "tip_amount",
+          "tolls_amount",
+          "improvement_surcharge",
+          "total_amount",
+          "congestion_surcharge"],
+         "cluster_keys": {
+            "columns":["VENDOR_ID","PICKUP_DATETIME","DROPOFF_DATETIME"],
+            "description": null
+        }
+    }
+}
