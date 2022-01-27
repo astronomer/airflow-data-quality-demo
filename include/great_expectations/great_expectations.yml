@@ -37,17 +37,26 @@ datasources:
   my_bigquery_db:
     module_name: great_expectations.datasource
     data_asset_type:
-      module_name:
+      module_name: great_expectations.dataset
       class_name: SqlAlchemyDataset
     class_name: SqlAlchemyDatasource
     credentials: ${my_bigquery_db}
-  my_snowflake_db:
+  my_snowflake_datasource:
     module_name: great_expectations.datasource
-    data_asset_type:
-      module_name:
-      class_name: SqlAlchemyDataset
-    class_name: SqlAlchemyDatasource
-    credentials: ${my_snowflake_db}
+    execution_engine:
+      module_name: great_expectations.execution_engine
+      class_name: SqlAlchemyExecutionEngine
+      connection_string: ${my_snowflake_db}
+    data_connectors:
+      default_inferred_data_connector_name:
+        module_name: great_expectations.datasource.data_connector
+        class_name: InferredAssetSqlDataConnector
+        include_schema_name: true
+      default_runtime_data_connector_name:
+        module_name: great_expectations.datasource.data_connector
+        class_name: RuntimeDataConnector
+        batch_identifiers:
+          - default_identifier_name
   my_redshift_db:
     module_name: great_expectations.datasource
     data_asset_type:

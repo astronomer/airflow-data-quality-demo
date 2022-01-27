@@ -19,7 +19,6 @@ from great_expectations_provider.operators.great_expectations import (
 from include.great_expectations.configs.snowflake_configs import (
     snowflake_data_context_config,
     snowflake_checkpoint_config,
-    snowflake_batch_request,
 )
 from include.libs.schema_reg.base_schema_transforms import snowflake_load_column_string
 
@@ -33,10 +32,10 @@ base_path = Path(__file__).parents[2]
 expectation_file = os.path.join(
     base_path, "include", "great_expectations/expectations/taxi/demo.json"
 )
-# To see the failure case, change yellow_tripdata_sample_2019-01.csv
-# to yellow_tripdata_sample_2019-02.csv
+# To see the failure case, change data_date from "2019-01" to "2019-02"
+data_date = "2019-01"  # "2019-02"
 data_file = os.path.join(
-    base_path, "include", "data/yellow_tripdata_sample_2019-01.csv"
+    base_path, "include", f"data/yellow_tripdata_sample_{data_date}.csv"
 )
 
 table_schema_path = f"{base_path}/include/sql/great_expectations_examples/table_schemas/"
@@ -44,9 +43,8 @@ table_schema_path = f"{base_path}/include/sql/great_expectations_examples/table_
 data_dir = os.path.join(base_path, "include", "data")
 ge_root_dir = os.path.join(base_path, "include", "great_expectations")
 
-data_context_config = snowflake_data_context_config
+#data_context_config = snowflake_data_context_config
 checkpoint_config = snowflake_checkpoint_config
-passing_batch_request = snowflake_batch_request
 
 with DAG(
     "great_expectations_snowflake_write_audit_publish_example",
@@ -134,14 +132,14 @@ with DAG(
         task_id="delete_snowflake_audit_table",
         sql="{% include 'delete_yellow_tripdata_table.sql' %}",
         params={"table_name": f"{table}_AUDIT"},
-        trigger_rule="all_done",
+        #trigger_rule="all_done",
     )
 
     delete_snowflake_table = SnowflakeOperator(
         task_id="delete_snowflake_table",
         sql="{% include 'delete_yellow_tripdata_table.sql' %}",
         params={"table_name": table},
-        trigger_rule="all_done",
+        #trigger_rule="all_done",
     )
 
     """
@@ -164,7 +162,7 @@ with DAG(
     """
     ge_snowflake_validation = GreatExpectationsOperator(
         task_id="ge_snowflake_validation",
-        data_context_config=data_context_config,
+        data_context_root_dir=ge_root_dir,
         checkpoint_config=checkpoint_config,
     )
 

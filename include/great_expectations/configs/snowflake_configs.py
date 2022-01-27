@@ -1,4 +1,5 @@
 import os
+import yaml
 
 from pathlib import Path
 from great_expectations.core.batch import BatchRequest
@@ -10,6 +11,13 @@ from great_expectations.data_context.types.base import (
 base_path = Path(__file__).parents[3]
 data_dir = os.path.join(base_path, "include", "data")
 ge_root_dir = os.path.join(base_path, "include", "great_expectations")
+connection_string = ""
+
+with open(
+    f"{ge_root_dir}/uncommitted/config_variables.yml",
+    "r",
+) as f:
+    connection_string = yaml.safe_load(f).get("my_snowflake_db")
 
 snowflake_data_context_config = DataContextConfig(
     **{
@@ -19,13 +27,9 @@ snowflake_data_context_config = DataContextConfig(
                 "module_name": "great_expectations.datasource",
                 "data_connectors": {
                     "default_inferred_data_connector_name": {
-                        "default_regex": {
-                            "group_names": ["data_asset_name"],
-                            "pattern": "(.*)",
-                        },
-                        "base_directory": data_dir,
                         "module_name": "great_expectations.datasource.data_connector",
-                        "class_name": "InferredAssetFilesystemDataConnector",
+                        "class_name": "InferredAssetSqlDataConnector",
+                        "include_schema_name": True,
                     },
                     "default_runtime_data_connector_name": {
                         "batch_identifiers": ["default_identifier_name"],
@@ -35,7 +39,8 @@ snowflake_data_context_config = DataContextConfig(
                 },
                 "execution_engine": {
                     "module_name": "great_expectations.execution_engine",
-                    "class_name": "PandasExecutionEngine",
+                    "class_name": "SqlAlchemyExecutionEngine",
+                    "connection_string": connection_string
                 },
                 "class_name": "Datasource",
             }
@@ -125,10 +130,9 @@ snowflake_checkpoint_config = CheckpointConfig(
         "validations": [
             {
                 "batch_request": {
-                    "datasource_name": "my_snowflake_db",
+                    "datasource_name": "my_snowflake_datasource",
                     "data_connector_name": "default_inferred_data_connector_name",
-                    "data_asset_name": "yellow_tripdata_sample_2019-01.csv",
-                    "data_connector_query": {"index": -1},
+                    "data_asset_name": "sandbox_benji.yellow_tripdata_audit",
                 },
             }
         ],
