@@ -135,7 +135,7 @@ with DAG(
     """
     ge_snowflake_validation = GreatExpectationsOperator(
         task_id="ge_snowflake_validation",
-        data_context_config=data_context_config,
+        data_context_root_dir=ge_root_dir,
         checkpoint_config=checkpoint_config,
     )
 

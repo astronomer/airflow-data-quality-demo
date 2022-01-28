@@ -18,7 +18,7 @@ from great_expectations_provider.operators.great_expectations import (
 )
 from include.great_expectations.configs.snowflake_configs import (
     snowflake_data_context_config,
-    snowflake_checkpoint_config,
+    snowflake_audit_checkpoint_config,
 )
 from include.libs.schema_reg.base_schema_transforms import snowflake_load_column_string
 
@@ -44,7 +44,7 @@ data_dir = os.path.join(base_path, "include", "data")
 ge_root_dir = os.path.join(base_path, "include", "great_expectations")
 
 #data_context_config = snowflake_data_context_config
-checkpoint_config = snowflake_checkpoint_config
+checkpoint_config = snowflake_audit_checkpoint_config
 
 with DAG(
     "great_expectations_snowflake_write_audit_publish_example",

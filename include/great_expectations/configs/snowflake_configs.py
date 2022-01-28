@@ -132,6 +132,47 @@ snowflake_checkpoint_config = CheckpointConfig(
                 "batch_request": {
                     "datasource_name": "my_snowflake_datasource",
                     "data_connector_name": "default_inferred_data_connector_name",
+                    "data_asset_name": "sandbox_benji.yellow_tripdata",
+                },
+            }
+        ],
+        "profilers": [],
+        "ge_cloud_id": None,
+        "expectation_suite_ge_cloud_id": None,
+    }
+)
+
+snowflake_audit_checkpoint_config = CheckpointConfig(
+    **{
+        "name": "taxi.pass.chk",
+        "config_version": 1.0,
+        "template_name": None,
+        "module_name": "great_expectations.checkpoint",
+        "class_name": "Checkpoint",
+        "run_name_template": "%Y%m%d-%H%M%S-my-run-name-template",
+        "expectation_suite_name": "taxi.demo",
+        "batch_request": None,
+        "action_list": [
+            {
+                "name": "store_validation_result",
+                "action": {"class_name": "StoreValidationResultAction"},
+            },
+            {
+                "name": "store_evaluation_params",
+                "action": {"class_name": "StoreEvaluationParametersAction"},
+            },
+            {
+                "name": "update_data_docs",
+                "action": {"class_name": "UpdateDataDocsAction", "site_names": []},
+            },
+        ],
+        "evaluation_parameters": {},
+        "runtime_configuration": {},
+        "validations": [
+            {
+                "batch_request": {
+                    "datasource_name": "my_snowflake_datasource",
+                    "data_connector_name": "default_inferred_data_connector_name",
                     "data_asset_name": "sandbox_benji.yellow_tripdata_audit",
                 },
             }
