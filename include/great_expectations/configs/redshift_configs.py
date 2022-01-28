@@ -127,8 +127,7 @@ redshift_checkpoint_config = CheckpointConfig(
                 "batch_request": {
                     "datasource_name": "my_redshift_db",
                     "data_connector_name": "default_inferred_data_connector_name",
-                    "data_asset_name": "yellow_tripdata_sample_2019-01.csv",
-                    "data_connector_query": {"index": -1},
+                    "data_asset_name": "public.yellow_tripdata",
                 },
             }
         ],

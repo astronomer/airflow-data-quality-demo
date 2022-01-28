@@ -32,9 +32,9 @@ data_file = os.path.join(
 data_dir = os.path.join(base_path, "include", "data")
 ge_root_dir = os.path.join(base_path, "include", "great_expectations")
 
-data_context_config = redshift_data_context_config
+# data_context_config = redshift_data_context_config
 checkpoint_config = redshift_checkpoint_config
-passing_batch_request = redshift_batch_request
+# passing_batch_request = redshift_batch_request
 
 with DAG(
     "great_expectations_redshift_example",
@@ -101,7 +101,7 @@ with DAG(
     """
     ge_redshift_validation = GreatExpectationsOperator(
         task_id="ge_redshift_validation",
-        data_context_config=data_context_config,
+        data_context_root_dir=ge_root_dir,
         checkpoint_config=checkpoint_config,
     )
 
