@@ -46,7 +46,7 @@ gcp_bucket = "great-expectations-demo"
 gcp_data_dest = "data/yellow_tripdata_sample_2019-01.csv"
 
 with DAG(
-    "great_expectations_bigquery_example",
+    "great_expectations_bigquery_example_v2",
     description="Example DAG showcasing loading and data quality checking with BigQuery and Great Expectations.",
     schedule_interval=None,
     start_date=datetime(2021, 1, 1),
