@@ -73,7 +73,7 @@ with DAG('simple_snowflake_el',
     Run data quality checks on a few rows, ensuring that the data in Snowflake
     matches the ground truth in the correspoding JSON file.
     """
-    with open("/files/dags/snowflake_examples/forestfire_validation.json") as ffv:
+    with open("/usr/local/airflow/include/validation/forestfire_validation.json") as ffv:
         with TaskGroup(group_id="row_quality_checks") as quality_check_group:
             ffv_json = json.load(ffv)
             for id, values in ffv_json.items():
