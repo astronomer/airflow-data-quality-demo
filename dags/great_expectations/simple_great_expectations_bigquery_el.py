@@ -9,6 +9,7 @@ from airflow.operators.dummy_operator import DummyOperator
 from airflow.providers.google.cloud.operators.bigquery import (
     BigQueryCreateEmptyDatasetOperator,
     BigQueryDeleteDatasetOperator,
+    BigQueryCreateEmptyTableOperator
 )
 from airflow.providers.google.cloud.transfers.local_to_gcs import (
     LocalFilesystemToGCSOperator,
@@ -20,24 +21,18 @@ from great_expectations_provider.operators.great_expectations import (
     GreatExpectationsOperator,
 )
 from include.great_expectations.configs.bigquery_configs import (
-    bigquery_data_context_config,
-    bigquery_checkpoint_config,
-    bigquery_batch_request,
+    bigquery_checkpoint_config
 )
 
 base_path = Path(__file__).parents[2]
-expectation_file = os.path.join(
-    base_path, "include", "great_expectations/expectations/taxi/demo.json"
-)
+
 data_file = os.path.join(
     base_path, "include", "data/yellow_tripdata_sample_2019-01.csv"
 )
 data_dir = os.path.join(base_path, "include", "data")
 ge_root_dir = os.path.join(base_path, "include", "great_expectations")
 
-data_context_config = bigquery_data_context_config
 checkpoint_config = bigquery_checkpoint_config
-passing_batch_request = bigquery_batch_request
 
 # In a production DAG, the global variables below should be stored as Airflow
 # or Environment variables.
@@ -90,6 +85,35 @@ with DAG(
     )
 
     """
+    #### Create Temp Table for GE in BigQuery
+    """
+    create_temp_table = BigQueryCreateEmptyTableOperator(
+        task_id="create_temp_table",
+        dataset_id=bq_dataset,
+        table_id=f"{bq_table}_temp",
+        schema_fields=[
+            {"name": "vendor_id", "type": "INTEGER", "mode": "REQUIRED"},
+            {"name": "pickup_datetime", "type": "DATETIME", "mode": "NULLABLE"},
+            {"name": "dropoff_datetime", "type": "DATETIME", "mode": "NULLABLE"},
+            {"name": "passenger_count", "type": "INTEGER", "mode": "NULLABLE"},
+            {"name": "trip_distance", "type": "FLOAT", "mode": "NULLABLE"},
+            {"name": "rate_code_id", "type": "INTEGER", "mode": "NULLABLE"},
+            {"name": "store_and_fwd_flag", "type": "STRING", "mode": "NULLABLE"},
+            {"name": "pickup_location_id", "type": "INTEGER", "mode": "NULLABLE"},
+            {"name": "dropoff_location_id", "type": "INTEGER", "mode": "NULLABLE"},
+            {"name": "payment_type", "type": "INTEGER", "mode": "NULLABLE"},
+            {"name": "fare_amount", "type": "FLOAT", "mode": "NULLABLE"},
+            {"name": "extra", "type": "FLOAT", "mode": "NULLABLE"},
+            {"name": "mta_tax", "type": "FLOAT", "mode": "NULLABLE"},
+            {"name": "tip_amount", "type": "FLOAT", "mode": "NULLABLE"},
+            {"name": "tolls_amount", "type": "FLOAT", "mode": "NULLABLE"},
+            {"name": "improvement_surcharge", "type": "FLOAT", "mode": "NULLABLE"},
+            {"name": "total_amount", "type": "FLOAT", "mode": "NULLABLE"},
+            {"name": "congestion_surcharge", "type": "FLOAT", "mode": "NULLABLE"},
+        ],
+    )
+
+    """
     #### Transfer data from GCS to BigQuery
     Moves the data uploaded to GCS in the previous step to BigQuery, where
     Great Expectations can run a test suite against it.
@@ -132,7 +156,7 @@ with DAG(
     """
     ge_bigquery_validation = GreatExpectationsOperator(
         task_id="ge_bigquery_validation",
-        data_context_config=data_context_config,
+        data_context_root_dir=ge_root_dir,
         checkpoint_config=checkpoint_config,
     )
 
@@ -153,6 +177,7 @@ with DAG(
     chain(
         begin,
         create_dataset,
+        create_temp_table,
         upload_taxi_data,
         transfer_taxi_data,
         ge_bigquery_validation,

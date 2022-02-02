@@ -147,7 +147,6 @@ snowflake_audit_checkpoint_config = CheckpointConfig(
         "name": "taxi.pass.chk",
         "config_version": 1.0,
         "template_name": None,
-        "module_name": "great_expectations.checkpoint",
         "class_name": "Checkpoint",
         "run_name_template": "%Y%m%d-%H%M%S-my-run-name-template",
         "expectation_suite_name": "taxi.demo",

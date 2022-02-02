@@ -11,27 +11,31 @@ base_path = Path(__file__).parents[3]
 data_dir = os.path.join(base_path, "include", "data")
 ge_root_dir = os.path.join(base_path, "include", "great_expectations")
 
-bigquery_data_context_config = DataContextConfig(
+s3_data_context_config = DataContextConfig(
     **{
         "config_version": 3.0,
         "datasources": {
-            "my_bigquery_datasource": {
+            "my_s3_config": {
+                "module_name": "great_expectations.datasource",
                 "data_connectors": {
                     "default_inferred_data_connector_name": {
                         "default_regex": {
-                            "group_names": ["data_asset_name"],
-                            "pattern": "(.*)",
+                            "group_names": ["yellow_tripdata", "date"],
+                            "pattern": "(yellow_tripdata_sample)_(\d{4}-\d{2})\.csv",
                         },
-                        "base_directory": data_dir,
-                        "class_name": "InferredAssetFilesystemDataConnector",
+                        "base_directory": "benji-dq-test/test/tripdata/",
+                        "module_name": "great_expectations.datasource.data_connector",
+                        "class_name": "InferredAssetS3DataConnector",
                     },
                     "default_runtime_data_connector_name": {
                         "batch_identifiers": ["default_identifier_name"],
+                        "module_name": "great_expectations.datasource.data_connector",
                         "class_name": "RuntimeDataConnector",
                     },
                 },
                 "execution_engine": {
-                    "class_name": "PandasExecutionEngine",
+                    "module_name": "great_expectations.execution_engine",
+                    "class_name": "SqlAlchemyExecutionEngine"
                 },
                 "class_name": "Datasource",
             }
@@ -92,11 +96,12 @@ bigquery_data_context_config = DataContextConfig(
     }
 )
 
-bigquery_checkpoint_config = CheckpointConfig(
+snowflake_checkpoint_config = CheckpointConfig(
     **{
         "name": "taxi.pass.chk",
         "config_version": 1.0,
         "template_name": None,
+        "module_name": "great_expectations.checkpoint",
         "class_name": "Checkpoint",
         "run_name_template": "%Y%m%d-%H%M%S-my-run-name-template",
         "expectation_suite_name": "taxi.demo",
@@ -120,12 +125,10 @@ bigquery_checkpoint_config = CheckpointConfig(
         "validations": [
             {
                 "batch_request": {
-                    "datasource_name": "my_bigquery_datasource",
+                    "datasource_name": "my_snowflake_db",
                     "data_connector_name": "default_inferred_data_connector_name",
-                    "data_asset_name": "great_expectations_bigquery_example.taxi",
-                    "batch_spec_passthrough": {
-                        "bigquery_temp_table": "taxi_temp"
-                    },
+                    "data_asset_name": "YELLOW_TRIPDATA",
+                    "data_connector_query": {"index": -1},
                 },
             }
         ],
@@ -135,11 +138,11 @@ bigquery_checkpoint_config = CheckpointConfig(
     }
 )
 
-bigquery_batch_request = BatchRequest(
+snowflake_batch_request = BatchRequest(
     **{
-        "datasource_name": "my_bigquery_datasource",
+        "datasource_name": "my_snowflake_db",
         "data_connector_name": "default_inferred_data_connector_name",
-        "data_asset_name": "great_expectations_bigquery_example.taxi",
+        "data_asset_name": "yellow_tripdata_sample_2019-01.csv",
         "data_connector_query": {"index": -1},
     }
 )
