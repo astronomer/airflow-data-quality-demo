@@ -29,9 +29,7 @@ table = "YELLOW_TRIPDATA"
 snowflake_conn = "snowflake_default"
 
 base_path = Path(__file__).parents[2]
-expectation_file = os.path.join(
-    base_path, "include", "great_expectations/expectations/taxi/demo.json"
-)
+
 # To see the failure case, change data_date from "2019-01" to "2019-02"
 data_date = "2019-01"  # "2019-02"
 data_file = os.path.join(
