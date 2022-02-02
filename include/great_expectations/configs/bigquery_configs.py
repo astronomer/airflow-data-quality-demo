@@ -15,8 +15,7 @@ bigquery_data_context_config = DataContextConfig(
     **{
         "config_version": 3.0,
         "datasources": {
-            "my_bigquery_db": {
-                "module_name": "great_expectations.datasource",
+            "my_bigquery_datasource": {
                 "data_connectors": {
                     "default_inferred_data_connector_name": {
                         "default_regex": {
@@ -24,17 +23,14 @@ bigquery_data_context_config = DataContextConfig(
                             "pattern": "(.*)",
                         },
                         "base_directory": data_dir,
-                        "module_name": "great_expectations.datasource.data_connector",
                         "class_name": "InferredAssetFilesystemDataConnector",
                     },
                     "default_runtime_data_connector_name": {
                         "batch_identifiers": ["default_identifier_name"],
-                        "module_name": "great_expectations.datasource.data_connector",
                         "class_name": "RuntimeDataConnector",
                     },
                 },
                 "execution_engine": {
-                    "module_name": "great_expectations.execution_engine",
                     "class_name": "PandasExecutionEngine",
                 },
                 "class_name": "Datasource",
@@ -101,7 +97,6 @@ bigquery_checkpoint_config = CheckpointConfig(
         "name": "taxi.pass.chk",
         "config_version": 1.0,
         "template_name": None,
-        "module_name": "great_expectations.checkpoint",
         "class_name": "Checkpoint",
         "run_name_template": "%Y%m%d-%H%M%S-my-run-name-template",
         "expectation_suite_name": "taxi.demo",
@@ -125,10 +120,12 @@ bigquery_checkpoint_config = CheckpointConfig(
         "validations": [
             {
                 "batch_request": {
-                    "datasource_name": "my_bigquery_db",
+                    "datasource_name": "my_bigquery_datasource",
                     "data_connector_name": "default_inferred_data_connector_name",
-                    "data_asset_name": "yellow_tripdata_sample_2019-01.csv",
-                    "data_connector_query": {"index": -1},
+                    "data_asset_name": "great_expectations_bigquery_example.taxi",
+                    "batch_spec_passthrough": {
+                        "bigquery_temp_table": "taxi_temp"
+                    },
                 },
             }
         ],
@@ -140,9 +137,9 @@ bigquery_checkpoint_config = CheckpointConfig(
 
 bigquery_batch_request = BatchRequest(
     **{
-        "datasource_name": "my_bigquery_db",
+        "datasource_name": "my_bigquery_datasource",
         "data_connector_name": "default_inferred_data_connector_name",
-        "data_asset_name": "yellow_tripdata_sample_2019-01.csv",
+        "data_asset_name": "great_expectations_bigquery_example.taxi",
         "data_connector_query": {"index": -1},
     }
 )

@@ -53,9 +53,20 @@ Variables needed are specified in each DAG and can be set under `Admin -> Variab
 In addition to the Getting Started steps, a connection to Snowflake is needed to run DAGs. Under `Admin -> Connections` in the Airflow UI, add a new connection with Conn ID as `snowflake_default`. The connection type is `Snowflake`. The host field should be the full URL that you use to log into Snowflake, for example `https://[account].[region].snowflakecomputing.com`. Fill out the `Login`, `Password`, `Schema`, `Account`, `Database`, `Region`, `Role`, and `Warehouse` fields with your information.
 
 #### Great Expectations DAGs:
-In addition to the Getting Started steps, Great Expectations requires connections when using outside sources. Ensure `GE_DATA_CONTEXT_ROOT_DIR` in the Dockerfile is pointing to the correct Great Expectations root. If you have made no changes to this repository and plan to use the example suite, it is pointing in the right place. Files related to the Great Expectations DAGs can be found under `include/great_expectations/`, and the referenced SQL queries under `include/sql/great_expectations_examples`.
+In addition to the Getting Started steps, Great Expectations requires its own connections in addition to the Airflow Connections needed by other tasks in the DAG when using outside sources. These connections can be made in the file located at `include/great_expectations/uncommitted/config_variables.yml`. Note: you will have to create this file on your own, it does not come as part of the repository. Example connections in YAML are of the form:
 
-For DAGs requiring a backend connection, see the corresponding section in this README for more information on setting up the Connection. Additionally, a connection must be set in the `config_variables.yml` file under `include/great_expectations/uncommitted/`. See the Great Expectations docs for more information on [BigQuery](https://docs.greatexpectations.io/docs/guides/connecting_to_your_data/database/bigquery/), [Redshift](https://docs.greatexpectations.io/docs/guides/connecting_to_your_data/database/redshift/), or [Snowflake](https://docs.greatexpectations.io/docs/guides/connecting_to_your_data/database/snowflake/). More connections can be added via the Great Expectations CLI tool, or by manually adding them to the `great_expectations.yml` file.
+```
+my_bigquery_db:
+  bigquery://[gcp-id-goes-here]
+my_snowflake_db:
+  snowflake://[username]:[password]@[account].[region]/[database]/[schema]?warehouse=[warehouse]&role=[role]
+my_redshift_db:
+  postgresql+psycopg2://[username]:[password]@[database_uri]:5439/[default_db]
+```
+
+See the Great Expectations docs for more information on [BigQuery](https://docs.greatexpectations.io/docs/guides/connecting_to_your_data/database/bigquery/), [Redshift](https://docs.greatexpectations.io/docs/guides/connecting_to_your_data/database/redshift/), or [Snowflake](https://docs.greatexpectations.io/docs/guides/connecting_to_your_data/database/snowflake/). More connections can be added via the Great Expectations CLI tool
+
+Files related to the Great Expectations DAGs can be found under `include/great_expectations/`, and the referenced SQL queries under `include/sql/great_expectations_examples/`.
 
 Variables needed are specified in each DAG and can be set under `Admin -> Variables` in the UI.
 

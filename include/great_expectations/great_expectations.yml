@@ -16,13 +16,10 @@ config_version: 3.0
 datasources:
   my_datasource:
     execution_engine:
-      module_name: great_expectations.execution_engine
       class_name: PandasExecutionEngine
-    module_name: great_expectations.datasource
     class_name: Datasource
     data_connectors:
       default_inferred_data_connector_name:
-        module_name: great_expectations.datasource.data_connector
         class_name: InferredAssetFilesystemDataConnector
         base_directory: ../data
         default_regex:
@@ -30,40 +27,46 @@ datasources:
             - data_asset_name
           pattern: (.*)
       default_runtime_data_connector_name:
-        module_name: great_expectations.datasource.data_connector
         class_name: RuntimeDataConnector
         batch_identifiers:
           - default_identifier_name
-  my_bigquery_db:
-    module_name: great_expectations.datasource
-    data_asset_type:
-      module_name: great_expectations.dataset
-      class_name: SqlAlchemyDataset
-    class_name: SqlAlchemyDatasource
-    credentials: ${my_bigquery_db}
-  my_snowflake_datasource:
-    module_name: great_expectations.datasource
+  my_bigquery_datasource:
+    class_name: Datasource
     execution_engine:
-      module_name: great_expectations.execution_engine
+      class_name: SqlAlchemyExecutionEngine
+      connection_string: ${my_bigquery_db}
+    data_connectors:
+      default_runtime_data_connector_name:
+        class_name: RuntimeDataConnector
+        batch_identifiers:
+          - default_identifier_name
+      default_inferred_data_connector_name:
+        class_name: InferredAssetSqlDataConnector
+        include_schema_name: True
+  my_snowflake_datasource:
+    execution_engine:
       class_name: SqlAlchemyExecutionEngine
       connection_string: ${my_snowflake_db}
     data_connectors:
       default_inferred_data_connector_name:
-        module_name: great_expectations.datasource.data_connector
         class_name: InferredAssetSqlDataConnector
         include_schema_name: true
       default_runtime_data_connector_name:
-        module_name: great_expectations.datasource.data_connector
         class_name: RuntimeDataConnector
         batch_identifiers:
           - default_identifier_name
-  my_redshift_db:
-    module_name: great_expectations.datasource
-    data_asset_type:
-      module_name:
-      class_name: SqlAlchemyDataset
-    class_name: SqlAlchemyDatasource
-    credentials: ${my_redshift_db}
+  my_redshift_datasource:
+    execution_engine:
+      class_name: SqlAlchemyExecutionEngine
+      connection_string: ${my_redshift_db}
+    data_connectors:
+      default_inferred_data_connector_name:
+        class_name: InferredAssetSqlDataConnector
+        include_schema_name: true
+      default_runtime_data_connector_name:
+        class_name: RuntimeDataConnector
+        batch_identifiers:
+          - default_identifier_name
 config_variables_file_path: uncommitted/config_variables.yml
 
 # The plugins_directory will be added to your python path for custom modules

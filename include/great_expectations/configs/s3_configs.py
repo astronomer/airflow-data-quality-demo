@@ -1,45 +1,31 @@
-"""
-A DAG that demonstrates use of the operators in this provider package.
-"""
-
 import os
+
 from pathlib import Path
-from datetime import datetime
-import airflow
-from airflow import DAG
 from great_expectations.core.batch import BatchRequest
-from great_expectations.data_context.types.base import (CheckpointConfig,
-                                                        DataContextConfig)
+from great_expectations.data_context.types.base import (
+    DataContextConfig,
+    CheckpointConfig
+)
 
-from great_expectations_provider.operators.great_expectations import \
-    GreatExpectationsOperator
-
-default_args = {"owner": "Airflow",
-                "start_date": datetime(2021, 1, 1)}
-
-dag = DAG(dag_id="example_great_expectations_dag", default_args=default_args)
-
-
-base_path = Path(__file__).parents[2]
+base_path = Path(__file__).parents[3]
 data_dir = os.path.join(base_path, "include", "data")
-
 ge_root_dir = os.path.join(base_path, "include", "great_expectations")
 
-data_context_config = DataContextConfig(
+s3_data_context_config = DataContextConfig(
     **{
         "config_version": 3.0,
         "datasources": {
-            "my_datasource": {
+            "my_s3_config": {
                 "module_name": "great_expectations.datasource",
                 "data_connectors": {
                     "default_inferred_data_connector_name": {
                         "default_regex": {
-                            "group_names": ["data_asset_name"],
-                            "pattern": "(.*)",
+                            "group_names": ["yellow_tripdata", "date"],
+                            "pattern": "(yellow_tripdata_sample)_(\d{4}-\d{2})\.csv",
                         },
-                        "base_directory": data_dir,
+                        "base_directory": "benji-dq-test/test/tripdata/",
                         "module_name": "great_expectations.datasource.data_connector",
-                        "class_name": "InferredAssetFilesystemDataConnector",
+                        "class_name": "InferredAssetS3DataConnector",
                     },
                     "default_runtime_data_connector_name": {
                         "batch_identifiers": ["default_identifier_name"],
@@ -49,7 +35,7 @@ data_context_config = DataContextConfig(
                 },
                 "execution_engine": {
                     "module_name": "great_expectations.execution_engine",
-                    "class_name": "PandasExecutionEngine",
+                    "class_name": "SqlAlchemyExecutionEngine"
                 },
                 "class_name": "Datasource",
             }
@@ -110,7 +96,7 @@ data_context_config = DataContextConfig(
     }
 )
 
-checkpoint_config = CheckpointConfig(
+snowflake_checkpoint_config = CheckpointConfig(
     **{
         "name": "taxi.pass.chk",
         "config_version": 1.0,
@@ -139,9 +125,9 @@ checkpoint_config = CheckpointConfig(
         "validations": [
             {
                 "batch_request": {
-                    "datasource_name": "my_datasource",
+                    "datasource_name": "my_snowflake_db",
                     "data_connector_name": "default_inferred_data_connector_name",
-                    "data_asset_name": "yellow_tripdata_sample_2019-01.csv",
+                    "data_asset_name": "YELLOW_TRIPDATA",
                     "data_connector_query": {"index": -1},
                 },
             }
@@ -152,61 +138,11 @@ checkpoint_config = CheckpointConfig(
     }
 )
 
-passing_batch_request = BatchRequest(
+snowflake_batch_request = BatchRequest(
     **{
-        "datasource_name": "my_datasource",
+        "datasource_name": "my_snowflake_db",
         "data_connector_name": "default_inferred_data_connector_name",
         "data_asset_name": "yellow_tripdata_sample_2019-01.csv",
         "data_connector_query": {"index": -1},
     }
-)
-
-ge_data_context_root_dir_with_checkpoint_name_pass = GreatExpectationsOperator(
-    task_id="ge_data_context_root_dir_with_checkpoint_name_pass",
-    data_context_root_dir=ge_root_dir,
-    checkpoint_name="taxi.pass.chk",
-    dag=dag,
-)
-
-ge_data_context_root_dir_with_checkpoint_name_fail_validation_and_not_task = GreatExpectationsOperator(
-    task_id="ge_data_context_root_dir_with_checkpoint_name_fail_validation_and_not_task",
-    data_context_root_dir=ge_root_dir,
-    checkpoint_name="taxi.fail.chk",
-    fail_task_on_validation_failure=False,
-    dag=dag,
-)
-
-ge_checkpoint_kwargs_substitute_batch_request_fails_validation_but_not_task = GreatExpectationsOperator(
-    task_id="ge_checkpoint_kwargs_substitute_batch_request_fails_validation_but_not_task",
-    data_context_root_dir=ge_root_dir,
-    checkpoint_name="taxi.pass.chk",
-    checkpoint_kwargs={"expectation_suite_name": "taxi.demo_fail"},
-    fail_task_on_validation_failure=False,
-    dag=dag,
-)
-
-ge_data_context_config_with_checkpoint_config_pass = GreatExpectationsOperator(
-    task_id="ge_data_context_config_with_checkpoint_config_pass",
-    data_context_config=data_context_config,
-    checkpoint_config=checkpoint_config,
-    dag=dag,
-)
-
-
-ge_checkpoint_fails_and_runs_callback = GreatExpectationsOperator(
-    task_id="ge_checkpoint_fails_and_runs_callback",
-    data_context_root_dir=ge_root_dir,
-    checkpoint_name="taxi.fail.chk",
-    fail_task_on_validation_failure=False,
-    validation_failure_callback=(
-        lambda x: print("Callback successfully run", x)),
-    dag=dag,
-)
-
-(
-    ge_data_context_root_dir_with_checkpoint_name_pass
-    >> ge_data_context_root_dir_with_checkpoint_name_fail_validation_and_not_task
-    >> ge_checkpoint_kwargs_substitute_batch_request_fails_validation_but_not_task
-    >> ge_data_context_config_with_checkpoint_config_pass
-    >> ge_checkpoint_fails_and_runs_callback
 )

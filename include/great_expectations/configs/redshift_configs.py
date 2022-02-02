@@ -15,7 +15,7 @@ redshift_data_context_config = DataContextConfig(
     **{
         "config_version": 3.0,
         "datasources": {
-            "my_redshift_db": {
+            "my_redshift_datasource": {
                 "module_name": "great_expectations.datasource",
                 "data_connectors": {
                     "default_inferred_data_connector_name": {
@@ -101,7 +101,6 @@ redshift_checkpoint_config = CheckpointConfig(
         "name": "taxi.pass.chk",
         "config_version": 1.0,
         "template_name": None,
-        "module_name": "great_expectations.checkpoint",
         "class_name": "Checkpoint",
         "run_name_template": "%Y%m%d-%H%M%S-my-run-name-template",
         "expectation_suite_name": "taxi.demo",
@@ -125,10 +124,9 @@ redshift_checkpoint_config = CheckpointConfig(
         "validations": [
             {
                 "batch_request": {
-                    "datasource_name": "my_redshift_db",
+                    "datasource_name": "my_redshift_datasource",
                     "data_connector_name": "default_inferred_data_connector_name",
-                    "data_asset_name": "yellow_tripdata_sample_2019-01.csv",
-                    "data_connector_query": {"index": -1},
+                    "data_asset_name": "public.yellow_tripdata",
                 },
             }
         ],
