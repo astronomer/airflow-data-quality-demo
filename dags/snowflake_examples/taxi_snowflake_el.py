@@ -30,13 +30,6 @@ with DAG(
     start_date=datetime(2021, 7, 7),
     description="A sample Airflow DAG to perform data quality checks using SQL Operators.",
     schedule_interval=None,
-    default_args={
-        "snowflake_conn_id": SNOWFLAKE_CONN_ID,
-        "warehouse": json.loads(BaseHook.get_connection(SNOWFLAKE_CONN_ID).extra)['extra__snowflake__warehouse'],
-        "database": json.loads(BaseHook.get_connection(SNOWFLAKE_CONN_ID).extra)['extra__snowflake__database'],
-        "role": json.loads(BaseHook.get_connection(SNOWFLAKE_CONN_ID).extra)['extra__snowflake__role'],
-        "schema": BaseHook.get_connection(SNOWFLAKE_CONN_ID).schema,
-    },
     template_searchpath="/usr/local/airflow/include/sql/snowflake_examples/",
     catchup=False,
 ) as dag:

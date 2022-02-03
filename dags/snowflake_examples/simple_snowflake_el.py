@@ -7,11 +7,6 @@ from airflow.utils.task_group import TaskGroup
 
 import json
 
-
-SNOWFLAKE_SCHEMA = 'SCHEMA'
-SNOWFLAKE_WAREHOUSE = 'WAREHOUSE'
-SNOWFLAKE_DATABASE = 'DATABASE'
-SNOWFLAKE_ROLE = 'ROLE'
 SNOWFLAKE_FORESTFIRE_TABLE = 'forestfires'
 
 with DAG('simple_snowflake_el',
@@ -45,10 +40,6 @@ with DAG('simple_snowflake_el',
     create_table = SnowflakeOperator(
         task_id="create_table",
         sql="{% include 'create_snowflake_table.sql' %}",
-        warehouse=SNOWFLAKE_WAREHOUSE,
-        database=SNOWFLAKE_DATABASE,
-        schema=SNOWFLAKE_SCHEMA,
-        role=SNOWFLAKE_ROLE,
         params={"table_name": SNOWFLAKE_FORESTFIRE_TABLE}
     )
 
@@ -60,12 +51,7 @@ with DAG('simple_snowflake_el',
     load_data = SnowflakeOperator(
         task_id="insert_query",
         sql="{% include 'load_snowflake_forestfire_data.sql' %}",
-        warehouse=SNOWFLAKE_WAREHOUSE,
-        database=SNOWFLAKE_DATABASE,
-        schema=SNOWFLAKE_SCHEMA,
-        role=SNOWFLAKE_ROLE,
-        params={"database_name": SNOWFLAKE_DATABASE,
-                "table_name": SNOWFLAKE_FORESTFIRE_TABLE}
+        params={"table_name": SNOWFLAKE_FORESTFIRE_TABLE}
     )
 
     """
@@ -78,7 +64,6 @@ with DAG('simple_snowflake_el',
             ffv_json = json.load(ffv)
             for id, values in ffv_json.items():
                 values["id"] = id
-                values["database_name"] = SNOWFLAKE_DATABASE
                 values["table_name"] = SNOWFLAKE_FORESTFIRE_TABLE
                 SnowflakeCheckOperator(
                     task_id=f"check_row_data_{id}",
@@ -103,15 +88,17 @@ with DAG('simple_snowflake_el',
     delete_table = SnowflakeOperator(
         task_id="delete_table",
         sql="{% include 'delete_snowflake_table.sql' %}",
-        warehouse=SNOWFLAKE_WAREHOUSE,
-        database=SNOWFLAKE_DATABASE,
-        schema=SNOWFLAKE_SCHEMA,
-        role=SNOWFLAKE_ROLE,
         params={"table_name": SNOWFLAKE_FORESTFIRE_TABLE}
     )
 
     begin = DummyOperator(task_id='begin')
     end = DummyOperator(task_id='end')
 
-    chain(begin, create_table, load_data, [
-          quality_check_group, check_bq_row_count], delete_table, end)
+    chain(
+        begin,
+        create_table,
+        load_data,
+        [quality_check_group, check_bq_row_count],
+        delete_table,
+        end
+    )

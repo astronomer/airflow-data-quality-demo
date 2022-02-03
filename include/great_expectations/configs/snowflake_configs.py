@@ -172,7 +172,7 @@ snowflake_audit_checkpoint_config = CheckpointConfig(
                 "batch_request": {
                     "datasource_name": "my_snowflake_datasource",
                     "data_connector_name": "default_inferred_data_connector_name",
-                    "data_asset_name": "sandbox_benji.yellow_tripdata_audit",
+                    "data_asset_name": "yellow_tripdata_audit",
                 },
             }
         ],
