@@ -57,7 +57,7 @@ In addition to the Getting Started steps, Great Expectations requires its own co
 
 ```
 my_bigquery_db:
-  bigquery://[gcp-id-goes-here]
+  bigquery://[gcp-id]/[dataset]
 my_snowflake_db:
   snowflake://[username]:[password]@[account].[region]/[database]/[schema]?warehouse=[warehouse]&role=[role]
 my_redshift_db:

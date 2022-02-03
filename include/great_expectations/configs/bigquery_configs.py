@@ -122,7 +122,7 @@ bigquery_checkpoint_config = CheckpointConfig(
                 "batch_request": {
                     "datasource_name": "my_bigquery_datasource",
                     "data_connector_name": "default_inferred_data_connector_name",
-                    "data_asset_name": "great_expectations_bigquery_example.taxi",
+                    "data_asset_name": "taxi",
                     "batch_spec_passthrough": {
                         "bigquery_temp_table": "taxi_temp"
                     },

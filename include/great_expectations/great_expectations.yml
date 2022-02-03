@@ -42,7 +42,7 @@ datasources:
           - default_identifier_name
       default_inferred_data_connector_name:
         class_name: InferredAssetSqlDataConnector
-        include_schema_name: True
+        include_schema_name: false
   my_snowflake_datasource:
     execution_engine:
       class_name: SqlAlchemyExecutionEngine

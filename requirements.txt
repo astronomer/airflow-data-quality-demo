@@ -2,7 +2,7 @@ apache-airflow-providers-amazon>=2.2.0
 apache-airflow-providers-google>=5.0.0
 apache-airflow-providers-postgres>=1.0.2
 apache-airflow-providers-snowflake>=2.1.0
-airflow-provider-great-expectations==0.1.1
+airflow-provider-great-expectations==0.1.2
 dbt-core
 dbt-postgres
 dbt-redshift
