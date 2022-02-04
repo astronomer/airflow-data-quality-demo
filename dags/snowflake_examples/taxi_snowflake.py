@@ -235,7 +235,7 @@ with DAG(
     """
     load_to_snowflake = S3ToSnowflakeOperator(
         task_id="load_to_snowflake",
-        prefix="test/tripdata",
+        prefix="test/tripdata_to_snowflake",
         stage=f"{TABLE}_STAGE",
         table=TABLE,
         file_format="(type = 'CSV', skip_header = 1, time_format = 'YYYY-MM-DD HH24:MI:SS')"
@@ -257,7 +257,7 @@ with DAG(
         TASK_DICT[f"upload_to_s3_{date}"] = LocalFilesystemToS3Operator(
             task_id=f"upload_to_s3_{date}",
             filename=file_path,
-            dest_key="{{ var.json.aws_configs.s3_key_prefix }}/tripdata/" + file_name,
+            dest_key="{{ var.json.aws_configs.s3_key_prefix }}/tripdata_to_snowflake/" + file_name,
             dest_bucket="{{ var.json.aws_configs.s3_bucket }}",
             aws_conn_id="aws_default",
             replace=True
