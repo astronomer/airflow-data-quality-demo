@@ -1,11 +1,9 @@
 import os
-import json
 
 from pathlib import Path
 from datetime import datetime
 
 from airflow import DAG
-from airflow.hooks.base import BaseHook
 from airflow.models.baseoperator import chain
 from airflow.operators.dummy_operator import DummyOperator
 from airflow.providers.amazon.aws.transfers.local_to_s3 import (
@@ -17,48 +15,27 @@ from great_expectations_provider.operators.great_expectations import (
     GreatExpectationsOperator,
 )
 from include.great_expectations.configs.snowflake_configs import (
-    snowflake_data_context_config,
     snowflake_checkpoint_config,
-    snowflake_batch_request,
 )
 
 # This table variable is a placeholder, in a live environment, it is better
 # to pull the table info from a Variable in a template
 table = "YELLOW_TRIPDATA"
-snowflake_conn = "snowflake_default"
 
 base_path = Path(__file__).parents[2]
-expectation_file = os.path.join(
-    base_path, "include", "great_expectations/expectations/taxi/demo.json"
-)
+
 data_file = os.path.join(
     base_path, "include", "data/yellow_tripdata_sample_2019-01.csv"
 )
-data_dir = os.path.join(base_path, "include", "data")
 ge_root_dir = os.path.join(base_path, "include", "great_expectations")
 
-data_context_config = snowflake_data_context_config
 checkpoint_config = snowflake_checkpoint_config
-passing_batch_request = snowflake_batch_request
 
 with DAG(
     "great_expectations_snowflake_example",
     start_date=datetime(2021, 1, 1),
     description="Example DAG showcasing loading and data quality checking with Snowflake and Great Expectations.",
     schedule_interval=None,
-    default_args={
-        "snowflake_conn": snowflake_conn,
-        "warehouse": json.loads(BaseHook.get_connection(snowflake_conn).extra)[
-            "extra__snowflake__warehouse"
-        ],
-        "database": json.loads(BaseHook.get_connection(snowflake_conn).extra)[
-            "extra__snowflake__database"
-        ],
-        "role": json.loads(BaseHook.get_connection(snowflake_conn).extra)[
-            "extra__snowflake__role"
-        ],
-        "schema": BaseHook.get_connection(snowflake_conn).schema,
-    },
     template_searchpath=f"{base_path}/include/sql/great_expectations_examples/",
     catchup=False,
 ) as dag:
@@ -86,7 +63,7 @@ with DAG(
     upload_to_s3 = LocalFilesystemToS3Operator(
         task_id="upload_to_s3",
         filename=data_file,
-        dest_key="{{ var.json.aws_configs.s3_key_prefix }}/yellow_tripdata_sample_2019-01.csv",
+        dest_key="{{ var.json.aws_configs.s3_key_prefix }}/tripdata/yellow_tripdata_sample_2019-01.csv",
         dest_bucket="{{ var.json.aws_configs.s3_bucket }}",
         aws_conn_id="aws_default",
         replace=True,
@@ -101,8 +78,17 @@ with DAG(
         sql="{% include 'create_yellow_tripdata_snowflake_table.sql' %}",
         params={
             "table_name": table,
-            "schema": BaseHook.get_connection(snowflake_conn).schema,
         },
+    )
+
+    """
+    #### Snowflake stage creation
+    Create the stage to load data into from S3
+    """
+    create_snowflake_stage = SnowflakeOperator(
+        task_id="create_snowflake_stage",
+        sql="{% include 'create_snowflake_yellow_tripdata_stage.sql' %}",
+        params={"stage_name": f"{table}_STAGE"}
     )
 
     """
@@ -143,6 +129,7 @@ with DAG(
         begin,
         upload_to_s3,
         create_snowflake_table,
+        create_snowflake_stage,
         load_to_snowflake,
         ge_snowflake_validation,
         delete_snowflake_table,

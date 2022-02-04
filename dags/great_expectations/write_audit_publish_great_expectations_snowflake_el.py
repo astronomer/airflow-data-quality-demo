@@ -41,7 +41,6 @@ table_schema_path = f"{base_path}/include/sql/great_expectations_examples/table_
 data_dir = os.path.join(base_path, "include", "data")
 ge_root_dir = os.path.join(base_path, "include", "great_expectations")
 
-#data_context_config = snowflake_data_context_config
 checkpoint_config = snowflake_audit_checkpoint_config
 
 with DAG(
@@ -110,6 +109,16 @@ with DAG(
     )
 
     """
+    #### Snowflake stage creation
+    Create the stage to load data into from S3
+    """
+    create_snowflake_stage = SnowflakeOperator(
+        task_id="create_snowflake_stage",
+        sql="{% include 'create_snowflake_yellow_tripdata_stage.sql' %}",
+        params={"stage_name": f"{table}_STAGE"}
+    )
+
+    """
     #### Delete table
     Cleans up the tables created for the example
     """
@@ -117,14 +126,14 @@ with DAG(
         task_id="delete_snowflake_audit_table",
         sql="{% include 'delete_yellow_tripdata_table.sql' %}",
         params={"table_name": f"{table}_AUDIT"},
-        #trigger_rule="all_done",
+        trigger_rule="all_done",
     )
 
     delete_snowflake_table = SnowflakeOperator(
         task_id="delete_snowflake_table",
         sql="{% include 'delete_yellow_tripdata_table.sql' %}",
         params={"table_name": table},
-        #trigger_rule="all_done",
+        trigger_rule="all_done",
     )
 
     """
@@ -181,10 +190,17 @@ with DAG(
     chain(
         begin,
         upload_to_s3,
-        [create_snowflake_table, create_snowflake_audit_table],
+        [
+            create_snowflake_table,
+            create_snowflake_audit_table,
+            create_snowflake_stage
+        ],
         load_s3_to_snowflake,
         ge_snowflake_validation,
         copy_snowflake_audit_to_production_table,
-        [delete_snowflake_table, delete_snowflake_audit_table],
+        [
+            delete_snowflake_table,
+            delete_snowflake_audit_table
+        ],
         end,
     )

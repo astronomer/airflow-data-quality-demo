@@ -1,11 +1,16 @@
+import json
+
 from airflow import DAG
 from airflow.models.baseoperator import chain
 from airflow.operators.dummy_operator import DummyOperator
-from airflow.providers.snowflake.operators.snowflake import SnowflakeOperator, SnowflakeCheckOperator, SnowflakeValueCheckOperator
+from airflow.providers.snowflake.operators.snowflake import (
+    SnowflakeOperator,
+    SnowflakeCheckOperator,
+    SnowflakeValueCheckOperator,
+)
 from airflow.utils.dates import datetime
 from airflow.utils.task_group import TaskGroup
 
-import json
 
 SNOWFLAKE_FORESTFIRE_TABLE = 'forestfires'
 

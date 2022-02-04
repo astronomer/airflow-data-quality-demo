@@ -1,6 +1,7 @@
+import pandas as pd
+
 from airflow import DAG
 from airflow.decorators import task
-from airflow.hooks.base import BaseHook
 from airflow.models.baseoperator import chain
 from airflow.operators.dummy_operator import DummyOperator
 from airflow.utils.dates import datetime
@@ -15,12 +16,9 @@ from plugins.snowflake_check_operators import (
     SnowflakeThresholdCheckOperator,
 )
 
-import pandas as pd
-import json
-
 # This table variable is a placeholder, in a live environment, it is better
 # to pull the table info from a Variable in a template
-TABLE = "YELLOW_TRIPDATA"
+TABLE = "YELLOW_TRIPDATA_WITH_UPLOAD_DATE"
 DATES = ["2019-01", "2019-02"]
 TASK_DICT = {}
 SNOWFLAKE_CONN_ID = "snowflake_default"
@@ -103,21 +101,18 @@ with DAG(
     create_snowflake_table = SnowflakeOperator(
         task_id="create_snowflake_table",
         sql="{% include 'create_snowflake_yellow_tripdata_table.sql' %}",
-        params={"table_name": TABLE,
-                "schema": BaseHook.get_connection(SNOWFLAKE_CONN_ID).schema}
+        params={"table_name": TABLE}
     )
 
     """
     #### Snowflake stage creation
     Create the stage to load data into from S3
-
+    """
     create_snowflake_stage = SnowflakeOperator(
         task_id="create_snowflake_stage",
         sql="{% include 'create_snowflake_yellow_tripdata_stage.sql' %}",
-        params={"stage_name": f"{TABLE}_STAGE",
-                "schema": Variable.get("SNOWFLAKE_SCHEMA")}
+        params={"stage_name": f"{TABLE}_STAGE"}
     )
-    """
 
     """
     #### Delete table
@@ -277,6 +272,7 @@ with DAG(
             converge_1,
             [TASK_DICT[f"upload_to_s3_{date}"]],
             create_snowflake_table,
+            create_snowflake_stage,
             load_to_snowflake,
             [quality_check_group, value_check,
                 interval_check, threshold_check],
