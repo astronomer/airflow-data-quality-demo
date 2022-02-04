@@ -28,7 +28,7 @@ CSV_FILE_PATH = f"include/sample_data/forestfire_data/{CSV_FILE_NAME}"
 # CSV_FILE_PATH = f"include/sample_data/forestfire_data/{CSV_FILE_NAME}"
 
 with DAG(
-    "redshift_3",
+    "simple_redshift_3",
     start_date=datetime(2021, 7, 7),
     description="A sample Airflow DAG to load data from csv files to S3 and then Redshift, with data integrity and quality checks.",
     schedule_interval=None,

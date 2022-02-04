@@ -18,7 +18,7 @@ CSV_CORRUPT_FILE_NAME = "forestfires_corrupt.csv"
 CSV_CORRUPT_FILE_PATH = f"include/sample_data/forestfire_data/{CSV_CORRUPT_FILE_NAME}"
 
 with DAG(
-    "redshift_1",
+    "simple_redshift_1",
     start_date=datetime(2021, 7, 7),
     description="A sample Airflow DAG to load data from csv files to S3, then check that all data was uploaded properly.",
     schedule_interval=None,
