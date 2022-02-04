@@ -25,24 +25,22 @@ from include.libs.schema_reg.base_schema_transforms import snowflake_load_column
 # to pull the table info from a Variable in a template
 table = "YELLOW_TRIPDATA"
 snowflake_conn = "snowflake_default"
-
 base_path = Path(__file__).parents[2]
-
 # To see the failure case, change data_date from "2019-01" to "2019-02"
 data_date = "2019-01"  # "2019-02"
 data_file = os.path.join(
-    base_path, "include", f"data/yellow_tripdata_sample_{data_date}.csv"
+    base_path,
+    "include",
+    f"sample_data/yellow_trip_data/yellow_tripdata_sample_{data_date}.csv",
 )
-
-table_schema_path = f"{base_path}/include/sql/great_expectations_examples/table_schemas/"
-
-data_dir = os.path.join(base_path, "include", "data")
+table_schema_path = (
+    f"{base_path}/include/sql/great_expectations_examples/table_schemas/"
+)
 ge_root_dir = os.path.join(base_path, "include", "great_expectations")
-
 checkpoint_config = snowflake_audit_checkpoint_config
 
 with DAG(
-    "great_expectations_snowflake_write_audit_publish_example",
+    "great_expectations.snowflake_write_audit_publish",
     start_date=datetime(2022, 1, 1),
     description="Example DAG showcasing a write-audit-publish data quality pattern with Snowflake and Great Expectations.",
     schedule_interval=None,
@@ -67,9 +65,6 @@ with DAG(
     2. No transformations or business logic.
     3. Exact values of data to quality check are known.
     """
-
-    begin = DummyOperator(task_id="begin")
-    end = DummyOperator(task_id="end")
 
     """
     #### Upload task
@@ -107,7 +102,7 @@ with DAG(
     create_snowflake_stage = SnowflakeOperator(
         task_id="create_snowflake_stage",
         sql="{% include 'create_snowflake_yellow_tripdata_stage.sql' %}",
-        params={"stage_name": f"{table}_STAGE"}
+        params={"stage_name": f"{table}_STAGE"},
     )
 
     """
@@ -139,7 +134,7 @@ with DAG(
         stage=f"{table}_STAGE",
         table=f"{table}_AUDIT",
         file_format="(type = 'CSV', skip_header = 1, time_format = 'YYYY-MM-DD HH24:MI:SS')",
-        trigger_rule="all_done"
+        trigger_rule="all_done",
     )
 
     """
@@ -174,24 +169,20 @@ with DAG(
                 "table_name": table,
                 "audit_table_name": f"{table}_AUDIT",
                 "table_schema": table_props,
-                "col_string": col_string
+                "col_string": col_string,
             },
         )
+
+    begin = DummyOperator(task_id="begin")
+    end = DummyOperator(task_id="end")
 
     chain(
         begin,
         upload_to_s3,
-        [
-            create_snowflake_table,
-            create_snowflake_audit_table,
-            create_snowflake_stage
-        ],
+        [create_snowflake_table, create_snowflake_audit_table, create_snowflake_stage],
         load_s3_to_snowflake,
         ge_snowflake_validation,
         copy_snowflake_audit_to_production_table,
-        [
-            delete_snowflake_table,
-            delete_snowflake_audit_table
-        ],
+        [delete_snowflake_table, delete_snowflake_audit_table],
         end,
     )

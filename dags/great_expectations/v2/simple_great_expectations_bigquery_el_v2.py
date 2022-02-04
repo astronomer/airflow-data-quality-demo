@@ -13,15 +13,21 @@ from airflow.models.baseoperator import chain
 from airflow.operators.dummy_operator import DummyOperator
 from airflow.providers.google.cloud.operators.bigquery import (
     BigQueryCreateEmptyDatasetOperator,
-    BigQueryDeleteDatasetOperator
+    BigQueryDeleteDatasetOperator,
 )
-from airflow.providers.google.cloud.transfers.local_to_gcs import LocalFilesystemToGCSOperator
-from airflow.providers.google.cloud.transfers.gcs_to_bigquery import GCSToBigQueryOperator
-from great_expectations_provider.operators.great_expectations import GreatExpectationsOperator
+from airflow.providers.google.cloud.transfers.local_to_gcs import (
+    LocalFilesystemToGCSOperator,
+)
+from airflow.providers.google.cloud.transfers.gcs_to_bigquery import (
+    GCSToBigQueryOperator,
+)
+from great_expectations_provider.operators.great_expectations import (
+    GreatExpectationsOperator,
+)
 from include.great_expectations.configs.bigquery_configs import (
     bigquery_data_context_config,
     bigquery_checkpoint_config,
-    bigquery_batch_request
+    bigquery_batch_request,
 )
 
 base_path = Path(__file__).parents[2]
@@ -50,7 +56,7 @@ with DAG(
     description="Example DAG showcasing loading and data quality checking with BigQuery and Great Expectations.",
     schedule_interval=None,
     start_date=datetime(2021, 1, 1),
-    catchup=False
+    catchup=False,
 ) as dag:
     """
     ### Simple EL Pipeline with Data Quality Checks Using BigQuery and Great Expectations
@@ -71,8 +77,7 @@ with DAG(
     Create the dataset to store the sample data tables.
     """
     create_dataset = BigQueryCreateEmptyDatasetOperator(
-        task_id="create_dataset",
-        dataset_id=bq_dataset
+        task_id="create_dataset", dataset_id=bq_dataset
     )
 
     """
@@ -115,12 +120,12 @@ with DAG(
             {"name": "tolls_amount", "type": "FLOAT", "mode": "NULLABLE"},
             {"name": "improvement_surcharge", "type": "FLOAT", "mode": "NULLABLE"},
             {"name": "total_amount", "type": "FLOAT", "mode": "NULLABLE"},
-            {"name": "congestion_surcharge", "type": "FLOAT", "mode": "NULLABLE"}
+            {"name": "congestion_surcharge", "type": "FLOAT", "mode": "NULLABLE"},
         ],
         source_format="CSV",
         create_disposition="CREATE_IF_NEEDED",
         write_disposition="WRITE_TRUNCATE",
-        allow_jagged_rows=True
+        allow_jagged_rows=True,
     )
 
     """
@@ -130,7 +135,7 @@ with DAG(
     ge_bigquery_validation = GreatExpectationsOperator(
         task_id="ge_bigquery_validation",
         data_context_config=data_context_config,
-        checkpoint_config=checkpoint_config
+        checkpoint_config=checkpoint_config,
     )
 
     """
@@ -141,7 +146,7 @@ with DAG(
         task_id="delete_dataset",
         project_id="{{ var.value.gcp_project_id }}",
         dataset_id=bq_dataset,
-        delete_contents=True
+        delete_contents=True,
     )
 
     begin = DummyOperator(task_id="begin")
@@ -154,5 +159,5 @@ with DAG(
         transfer_taxi_data,
         ge_bigquery_validation,
         delete_dataset,
-        end
+        end,
     )

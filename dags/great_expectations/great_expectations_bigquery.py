@@ -9,7 +9,7 @@ from airflow.operators.dummy_operator import DummyOperator
 from airflow.providers.google.cloud.operators.bigquery import (
     BigQueryCreateEmptyDatasetOperator,
     BigQueryDeleteDatasetOperator,
-    BigQueryCreateEmptyTableOperator
+    BigQueryCreateEmptyTableOperator,
 )
 from airflow.providers.google.cloud.transfers.local_to_gcs import (
     LocalFilesystemToGCSOperator,
@@ -21,17 +21,16 @@ from great_expectations_provider.operators.great_expectations import (
     GreatExpectationsOperator,
 )
 from include.great_expectations.configs.bigquery_configs import (
-    bigquery_checkpoint_config
+    bigquery_checkpoint_config,
 )
 
 base_path = Path(__file__).parents[2]
-
 data_file = os.path.join(
-    base_path, "include", "data/yellow_tripdata_sample_2019-01.csv"
+    base_path,
+    "include",
+    "sample_data/yellow_trip_data/yellow_tripdata_sample_2019-01.csv",
 )
-data_dir = os.path.join(base_path, "include", "data")
 ge_root_dir = os.path.join(base_path, "include", "great_expectations")
-
 checkpoint_config = bigquery_checkpoint_config
 
 # In a production DAG, the global variables below should be stored as Airflow
@@ -42,7 +41,7 @@ gcp_bucket = "great-expectations-demo"
 gcp_data_dest = "data/yellow_tripdata_sample_2019-01.csv"
 
 with DAG(
-    "great_expectations_bigquery_example",
+    "great_expectations.bigquery",
     description="Example DAG showcasing loading and data quality checking with BigQuery and Great Expectations.",
     schedule_interval=None,
     start_date=datetime(2021, 1, 1),

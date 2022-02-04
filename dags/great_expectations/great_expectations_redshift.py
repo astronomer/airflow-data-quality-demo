@@ -15,29 +15,21 @@ from great_expectations_provider.operators.great_expectations import (
     GreatExpectationsOperator,
 )
 from include.great_expectations.configs.redshift_configs import (
-    redshift_data_context_config,
     redshift_checkpoint_config,
-    redshift_batch_request,
 )
 
 table = "yellow_tripdata"
-
 base_path = Path(__file__).parents[2]
-expectation_file = os.path.join(
-    base_path, "include", "great_expectations/expectations/taxi/demo.json"
-)
 data_file = os.path.join(
-    base_path, "include", "data/yellow_tripdata_sample_2019-01.csv"
+    base_path,
+    "include",
+    "sample_data/yellow_trip_data/yellow_tripdata_sample_2019-01.csv",
 )
-data_dir = os.path.join(base_path, "include", "data")
 ge_root_dir = os.path.join(base_path, "include", "great_expectations")
-
-# data_context_config = redshift_data_context_config
 checkpoint_config = redshift_checkpoint_config
-# passing_batch_request = redshift_batch_request
 
 with DAG(
-    "great_expectations_redshift_example",
+    "great_expectations.redshift",
     start_date=datetime(2021, 1, 1),
     description="Example DAG showcasing loading and data quality checking with Redshift and Great Expectations.",
     schedule_interval=None,
@@ -115,7 +107,7 @@ with DAG(
         task_id="drop_table",
         sql="delete_yellow_tripdata_table.sql",
         postgres_conn_id="redshift_default",
-        params={"table_name": table}
+        params={"table_name": table},
     )
 
     begin = DummyOperator(task_id="begin")

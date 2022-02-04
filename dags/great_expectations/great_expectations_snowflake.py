@@ -21,18 +21,17 @@ from include.great_expectations.configs.snowflake_configs import (
 # This table variable is a placeholder, in a live environment, it is better
 # to pull the table info from a Variable in a template
 table = "YELLOW_TRIPDATA"
-
 base_path = Path(__file__).parents[2]
-
 data_file = os.path.join(
-    base_path, "include", "data/yellow_tripdata_sample_2019-01.csv"
+    base_path,
+    "include",
+    "sample_data/yellow_trip_data/yellow_tripdata_sample_2019-01.csv",
 )
 ge_root_dir = os.path.join(base_path, "include", "great_expectations")
-
 checkpoint_config = snowflake_checkpoint_config
 
 with DAG(
-    "great_expectations_snowflake_example",
+    "great_expectations.snowflake",
     start_date=datetime(2021, 1, 1),
     description="Example DAG showcasing loading and data quality checking with Snowflake and Great Expectations.",
     schedule_interval=None,
@@ -52,9 +51,6 @@ with DAG(
     2. No transformations or business logic.
     3. Exact values of data to quality check are known.
     """
-
-    begin = DummyOperator(task_id="begin")
-    end = DummyOperator(task_id="end")
 
     """
     #### Upload task
@@ -88,7 +84,7 @@ with DAG(
     create_snowflake_stage = SnowflakeOperator(
         task_id="create_snowflake_stage",
         sql="{% include 'create_snowflake_yellow_tripdata_stage.sql' %}",
-        params={"stage_name": f"{table}_STAGE"}
+        params={"stage_name": f"{table}_STAGE"},
     )
 
     """
@@ -124,6 +120,9 @@ with DAG(
         data_context_root_dir=ge_root_dir,
         checkpoint_config=checkpoint_config,
     )
+
+    begin = DummyOperator(task_id="begin")
+    end = DummyOperator(task_id="end")
 
     chain(
         begin,

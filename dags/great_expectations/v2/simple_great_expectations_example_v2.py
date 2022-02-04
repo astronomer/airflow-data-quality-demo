@@ -9,7 +9,9 @@ from datetime import datetime
 
 from airflow import DAG
 from airflow.models.baseoperator import chain
-from great_expectations_provider.operators.great_expectations import GreatExpectationsOperator
+from great_expectations_provider.operators.great_expectations import (
+    GreatExpectationsOperator,
+)
 
 
 base_path = "/usr/local/airflow/"
@@ -22,7 +24,7 @@ with DAG(
     dag_id="example_great_expectations_dag",
     schedule_interval=None,
     start_date=datetime(2021, 1, 1),
-    default_args={"data_context_root_dir": ge_root_dir}
+    default_args={"data_context_root_dir": ge_root_dir},
 ) as dag:
 
     """
@@ -47,7 +49,7 @@ with DAG(
                 "batch_kwargs": {"path": data_file, "datasource": "data__dir"},
                 "expectation_suite_name": "taxi.demo",
             }
-        ]
+        ],
     )
 
     """
@@ -56,7 +58,7 @@ with DAG(
     ge_checkpoint_pass_root_dir = GreatExpectationsOperator(
         task_id="ge_checkpoint_pass_root_dir",
         run_name="ge_airflow_run",
-        checkpoint_name="taxi.pass.chk"
+        checkpoint_name="taxi.pass.chk",
     )
 
     """
@@ -65,7 +67,7 @@ with DAG(
     ge_batch_kwargs_pass = GreatExpectationsOperator(
         task_id="ge_batch_kwargs_pass",
         expectation_suite_name="taxi.demo",
-        batch_kwargs={"path": data_file, "datasource": "data__dir"}
+        batch_kwargs={"path": data_file, "datasource": "data__dir"},
     )
 
     """
@@ -76,7 +78,7 @@ with DAG(
         task_id="ge_checkpoint_fail_but_continue",
         run_name="ge_airflow_run",
         checkpoint_name="taxi.fail.chk",
-        fail_task_on_validation_failure=False
+        fail_task_on_validation_failure=False,
     )
 
     """
@@ -86,7 +88,7 @@ with DAG(
     ge_checkpoint_pass = GreatExpectationsOperator(
         task_id="ge_checkpoint_pass",
         run_name="ge_airflow_run",
-        checkpoint_name="taxi.pass.chk"
+        checkpoint_name="taxi.pass.chk",
     )
 
     """
@@ -96,10 +98,14 @@ with DAG(
     ge_checkpoint_fail = GreatExpectationsOperator(
         task_id="ge_checkpoint_fail",
         run_name="ge_airflow_run",
-        checkpoint_name="taxi.fail.chk"
+        checkpoint_name="taxi.fail.chk",
     )
 
     chain(
-        ge_batch_kwargs_list_pass, ge_checkpoint_pass_root_dir, ge_batch_kwargs_pass,
-        ge_checkpoint_fail_but_continue, ge_checkpoint_pass, ge_checkpoint_fail
+        ge_batch_kwargs_list_pass,
+        ge_checkpoint_pass_root_dir,
+        ge_batch_kwargs_pass,
+        ge_checkpoint_fail_but_continue,
+        ge_checkpoint_pass,
+        ge_checkpoint_fail,
     )
