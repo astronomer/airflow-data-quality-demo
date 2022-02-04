@@ -1,9 +1,9 @@
 {% set table_schema = params.table_schema %}
-MERGE INTO {{ params.schema }}.{{ params.table_name }} as dest
+MERGE INTO {{ conn.snowflake_default.schema }}.{{ params.table_name }} as dest
 USING (
     SELECT *
     FROM
-    {{ params.schema }}.{{ params.audit_table_name }}
+    {{ conn.snowflake_default.schema }}.{{ params.audit_table_name }}
 ) as stg
 ON dest.PICKUP_DATETIME = stg.PICKUP_DATETIME
   AND dest.DROPOFF_DATETIME = stg.DROPOFF_DATETIME

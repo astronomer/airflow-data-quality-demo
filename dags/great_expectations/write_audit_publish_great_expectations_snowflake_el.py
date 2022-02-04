@@ -5,7 +5,6 @@ from pathlib import Path
 from datetime import datetime
 
 from airflow import DAG
-from airflow.hooks.base import BaseHook
 from airflow.models.baseoperator import chain
 from airflow.operators.dummy_operator import DummyOperator
 from airflow.providers.amazon.aws.transfers.local_to_s3 import (
@@ -17,7 +16,6 @@ from great_expectations_provider.operators.great_expectations import (
     GreatExpectationsOperator,
 )
 from include.great_expectations.configs.snowflake_configs import (
-    snowflake_data_context_config,
     snowflake_audit_checkpoint_config,
 )
 from include.libs.schema_reg.base_schema_transforms import snowflake_load_column_string
@@ -93,19 +91,13 @@ with DAG(
     create_snowflake_audit_table = SnowflakeOperator(
         task_id="create_snowflake_audit_table",
         sql="{% include 'create_yellow_tripdata_snowflake_table.sql' %}",
-        params={
-            "table_name": f"{table}_AUDIT",
-            "schema": BaseHook.get_connection(snowflake_conn).schema,
-        },
+        params={"table_name": f"{table}_AUDIT"},
     )
 
     create_snowflake_table = SnowflakeOperator(
         task_id="create_snowflake_table",
         sql="{% include 'create_yellow_tripdata_snowflake_table.sql' %}",
-        params={
-            "table_name": table,
-            "schema": BaseHook.get_connection(snowflake_conn).schema,
-        },
+        params={"table_name": table},
     )
 
     """
@@ -181,7 +173,6 @@ with DAG(
             params={
                 "table_name": table,
                 "audit_table_name": f"{table}_AUDIT",
-                "schema": BaseHook.get_connection(snowflake_conn).schema,
                 "table_schema": table_props,
                 "col_string": col_string
             },
