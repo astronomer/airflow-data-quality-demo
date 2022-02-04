@@ -1,3 +1,5 @@
+import hashlib
+
 from airflow import DAG, AirflowException
 from airflow.decorators import task
 from airflow.models import Variable
@@ -5,25 +7,28 @@ from airflow.models.baseoperator import chain
 from airflow.operators.dummy_operator import DummyOperator
 from airflow.utils.dates import datetime
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
-from airflow.providers.amazon.aws.transfers.local_to_s3 import LocalFilesystemToS3Operator
+from airflow.providers.amazon.aws.transfers.local_to_s3 import (
+    LocalFilesystemToS3Operator,
+)
 from airflow.providers.amazon.aws.transfers.s3_to_redshift import S3ToRedshiftOperator
 from airflow.providers.postgres.operators.postgres import PostgresOperator
 from airflow.operators.sql import SQLCheckOperator
 
-import hashlib
 
 # The file(s) to upload shouldn't be hardcoded in a production setting, this is just for demo purposes.
 CSV_FILE_NAME = "forestfires.csv"
-CSV_FILE_PATH = f"include/sample_data/{CSV_FILE_NAME}"
+CSV_FILE_PATH = f"include/sample_data/forestfire_data/{CSV_FILE_NAME}"
 CSV_CORRUPT_FILE_NAME = "forestfires_corrupt.csv"
-CSV_CORRUPT_FILE_PATH = f"include/sample_data/{CSV_CORRUPT_FILE_NAME}"
+CSV_CORRUPT_FILE_PATH = f"include/sample_data/forestfire_data/{CSV_CORRUPT_FILE_NAME}"
 
-with DAG("simple_redshift_el_dag_2",
-         start_date=datetime(2021, 7, 7),
-         description="A sample Airflow DAG to load data from csv files to S3 and then Redshift, with data integrity checks.",
-         schedule_interval=None,
-         template_searchpath="/usr/local/airflow/include/sql/redshift_examples/",
-         catchup=False) as dag:
+with DAG(
+    "redshift_2",
+    start_date=datetime(2021, 7, 7),
+    description="A sample Airflow DAG to load data from csv files to S3 and then Redshift, with data integrity checks.",
+    schedule_interval=None,
+    template_searchpath="/usr/local/airflow/include/sql/redshift_examples/",
+    catchup=False,
+) as dag:
     """
     ### Simple EL Pipeline with Data Integrity Check 2
     This is the second in a series of DAGs showing an EL pipeline with data integrity
@@ -57,7 +62,7 @@ with DAG("simple_redshift_el_dag_2",
         dest_key="{{ var.json.aws_configs.s3_key_prefix }}/" + CSV_FILE_PATH,
         dest_bucket="{{ var.json.aws_configs.s3_bucket }}",
         aws_conn_id="aws_default",
-        replace=True
+        replace=True,
     )
 
     @task
@@ -71,14 +76,16 @@ with DAG("simple_redshift_el_dag_2",
         aws_configs = Variable.get("aws_configs", deserialize_json=True)
         obj = s3.get_key(
             key=f"{aws_configs.get('s3_key_prefix')}/{CSV_FILE_PATH}",
-            bucket_name=aws_configs.get("s3_bucket"))
+            bucket_name=aws_configs.get("s3_bucket"),
+        )
         obj_etag = obj.e_tag.strip('"')
         # Change `CSV_FILE_PATH` to `CSV_CORRUPT_FILE_PATH` for the "sad path".
         file_hash = hashlib.md5(
             open(CSV_FILE_PATH).read().encode("utf-8")).hexdigest()
         if obj_etag != file_hash:
             raise AirflowException(
-                f"Upload Error: Object ETag in S3 did not match hash of local file.")
+                f"Upload Error: Object ETag in S3 did not match hash of local file."
+            )
 
     validate_file = validate_etag()
 
@@ -92,7 +99,7 @@ with DAG("simple_redshift_el_dag_2",
     create_redshift_table = PostgresOperator(
         task_id="create_table",
         sql="create_redshift_forestfire_table.sql",
-        postgres_conn_id="redshift_default"
+        postgres_conn_id="redshift_default",
     )
 
     """
@@ -103,10 +110,11 @@ with DAG("simple_redshift_el_dag_2",
     load_to_redshift = S3ToRedshiftOperator(
         task_id="load_to_redshift",
         s3_bucket="{{ var.json.aws_configs.s3_bucket }}",
-        s3_key="{{ var.json.aws_configs.s3_key_prefix }}"+f"/{CSV_FILE_PATH}",
+        s3_key="{{ var.json.aws_configs.s3_key_prefix }}"
+        + f"/{CSV_FILE_PATH}",
         schema="PUBLIC",
         table="{{ var.json.aws_configs.redshift_table }}",
-        copy_options=["csv"]
+        copy_options=["csv"],
     )
 
     """
@@ -130,7 +138,7 @@ with DAG("simple_redshift_el_dag_2",
     drop_redshift_table = PostgresOperator(
         task_id="drop_table",
         sql="drop_redshift_forestfire_table.sql",
-        postgres_conn_id="redshift_default"
+        postgres_conn_id="redshift_default",
     )
 
     begin = DummyOperator(task_id="begin")
@@ -144,5 +152,5 @@ with DAG("simple_redshift_el_dag_2",
         load_to_redshift,
         validate_redshift,
         drop_redshift_table,
-        end
+        end,
     )
