@@ -174,7 +174,7 @@ with DAG("sql_data_quality_redshift_etl",
         )
 
     for i, date in enumerate(DATES):
-        file_path = f"/usr/local/airflow/include/data/yellow_tripdata_sample_{date}.csv"
+        file_path = f"/usr/local/airflow/include/sample_data/yellow_trip_data/yellow_tripdata_sample_{date}.csv"
 
         TASK_DICT[f"add_upload_date_{date}"] = add_upload_date(
             file_path,
