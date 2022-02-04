@@ -24,7 +24,7 @@ TASK_DICT = {}
 SNOWFLAKE_CONN_ID = "snowflake_default"
 
 with DAG(
-    "taxi_snowflake_el",
+    "taxi_snowflake",
     start_date=datetime(2021, 7, 7),
     description="A sample Airflow DAG to perform data quality checks using SQL Operators.",
     schedule_interval=None,
@@ -243,7 +243,7 @@ with DAG(
 
     for i, date in enumerate(DATES):
         file_name = f"yellow_tripdata_sample_{date}.csv"
-        file_path = f"/usr/local/airflow/include/data/{file_name}"
+        file_path = f"/usr/local/airflow/include/sample_data/yellow_trip_data/{file_name}"
 
         TASK_DICT[f"add_upload_date_{date}"] = add_upload_date(
             file_path,

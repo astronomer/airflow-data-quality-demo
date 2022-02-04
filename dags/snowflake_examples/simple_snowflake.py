@@ -14,7 +14,7 @@ from airflow.utils.task_group import TaskGroup
 
 SNOWFLAKE_FORESTFIRE_TABLE = 'forestfires'
 
-with DAG('simple_snowflake_el',
+with DAG('simple_snowflake',
          description='Example DAG showcasing loading and data quality checking with Snowflake.',
          start_date=datetime(2021, 1, 1),
          schedule_interval=None,
