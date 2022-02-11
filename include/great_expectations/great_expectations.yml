@@ -30,6 +30,15 @@ datasources:
         class_name: RuntimeDataConnector
         batch_identifiers:
           - default_identifier_name
+  my_mlflow_datasource:
+    execution_engine:
+      class_name: PandasExecutionEngine
+    class_name: Datasource
+    data_connectors:
+      default_runtime_data_connector_name:
+        class_name: RuntimeDataConnector
+        batch_identifiers:
+          - default_identifier_name
   my_bigquery_datasource:
     class_name: Datasource
     execution_engine:
@@ -68,18 +77,18 @@ datasources:
         class_name: RuntimeDataConnector
         batch_identifiers:
           - default_identifier_name
-#  my_redshift_datasource:
-#    execution_engine:
-#      class_name: SqlAlchemyExecutionEngine
-#      connection_string: ${my_redshift_db}
-#    data_connectors:
-#      default_inferred_data_connector_name:
-#        class_name: InferredAssetSqlDataConnector
-#        include_schema_name: true
-#      default_runtime_data_connector_name:
-#        class_name: RuntimeDataConnector
-#        batch_identifiers:
-#          - default_identifier_name
+  my_redshift_datasource:
+    execution_engine:
+      class_name: SqlAlchemyExecutionEngine
+      connection_string: ${my_redshift_db}
+    data_connectors:
+      default_inferred_data_connector_name:
+        class_name: InferredAssetSqlDataConnector
+        include_schema_name: true
+      default_runtime_data_connector_name:
+        class_name: RuntimeDataConnector
+        batch_identifiers:
+          - default_identifier_name
 config_variables_file_path: uncommitted/config_variables.yml
 
 # The plugins_directory will be added to your python path for custom modules

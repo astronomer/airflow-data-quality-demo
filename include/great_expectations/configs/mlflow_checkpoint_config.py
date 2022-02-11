@@ -1,7 +1,10 @@
 import os
 
 from pathlib import Path
-from great_expectations.data_context.types.base import CheckpointConfig
+
+from great_expectations.data_context.types.base import (
+    CheckpointConfig,
+)
 
 base_path = Path(__file__).parents[3]
 data_dir = os.path.join(base_path, "include", "data")
@@ -27,14 +30,8 @@ mlflow_checkpoint_config = CheckpointConfig(
             },
             {
                 "name": "update_data_docs",
-                "action": {"class_name": "UpdateDataDocsAction", "site_names": []},
+                "action": {"class_name": "UpdateDataDocsAction"},
             },
         ],
-        "evaluation_parameters": {},
-        "runtime_configuration": {},
-        "validations": [],
-        "profilers": [],
-        "ge_cloud_id": None,
-        "expectation_suite_ge_cloud_id": None,
     }
 )
