@@ -39,6 +39,10 @@ datasources:
         class_name: RuntimeDataConnector
         batch_identifiers:
           - default_identifier_name
+      default_inferred_data_connector_name:
+        class_name: RuntimeDataConnector
+        batch_identifiers:
+          - default_identifier_name
   my_bigquery_datasource:
     class_name: Datasource
     execution_engine:
