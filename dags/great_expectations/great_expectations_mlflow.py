@@ -142,6 +142,7 @@ def mlflow_multimodel_register_example():
             data_context=data_context, **mlflow_checkpoint_config.to_json_dict()
         )
         result = checkpoint.run(batch_request=batch_request)
+        logging.info(result)
         if not result["success"]:
             raise AirflowException(
                 "Validation with Great Expectations failed.")
