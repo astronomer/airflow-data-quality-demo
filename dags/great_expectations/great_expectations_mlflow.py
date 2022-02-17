@@ -110,6 +110,7 @@ def mlflow_multimodel_register_example():
 
         Keyword arguments:
         df -- Preprocessed data from BigQuery to be quality checked
+        stage -- Specify name of the data asset
         """
         batch_request = RuntimeBatchRequest(
             datasource_name="my_mlflow_datasource",
@@ -134,6 +135,7 @@ def mlflow_multimodel_register_example():
         df -- Preprocessed data from BigQuery to be quality checked
         batch_request -- The RuntimeBatchRequest to specify which dataframe to
             run the quality check on
+        checkpoint_config -- The specific checkpoint config to run
         """
 
         base_path = Path(__file__).parents[2]
@@ -168,7 +170,6 @@ def mlflow_multimodel_register_example():
         df = pd.get_dummies(df, prefix="education", columns=["education"])
         df = pd.get_dummies(df, prefix="occupation", columns=["occupation"])
         df = pd.get_dummies(df, prefix="race", columns=["race"])
-        """NOTE: Do check on one-hot sex column that we can add to the DAG during the webinar"""
         df = pd.get_dummies(df, prefix="sex", columns=["sex"])
         df = pd.get_dummies(df, prefix="income_bracket",
                             columns=["income_bracket"])
@@ -176,7 +177,6 @@ def mlflow_multimodel_register_example():
                             columns=["native_country"])
 
         # Bin Ages
-        """NOTE: Add expectation in preprocessing to make sure ages are below 100"""
         df["age_bins"] = pd.cut(
             x=df["age"], bins=[16, 29, 39, 49, 59, 100], labels=[1, 2, 3, 4, 5]
         )
