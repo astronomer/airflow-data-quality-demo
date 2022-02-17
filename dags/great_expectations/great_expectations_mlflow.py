@@ -10,6 +10,7 @@ import include.metrics as metrics
 from datetime import datetime
 from great_expectations.core.batch import RuntimeBatchRequest
 from great_expectations.checkpoint import Checkpoint
+from great_expectations.data_context.types.base import CheckpointConfig
 from pathlib import Path
 from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.linear_model import LogisticRegression
@@ -18,7 +19,8 @@ from airflow.decorators import task, dag, task_group
 from airflow.providers.google.cloud.hooks.bigquery import BigQueryHook
 from airflow.exceptions import AirflowException
 from include.great_expectations.configs.mlflow_checkpoint_config import (
-    mlflow_checkpoint_config,
+    mlflow_preprocess_checkpoint_config,
+    mlflow_feature_checkpoint_config
 )
 from include.grid_configs import models, params
 
@@ -100,7 +102,7 @@ def mlflow_multimodel_register_example():
         return df
 
     @task
-    def build_ge_batch_request(df: pd.DataFrame):
+    def build_ge_batch_request(df: pd.DataFrame, stage: str):
         """Build the Batch Request necessary to run the Great Expectations
         checkpoint
 
@@ -112,7 +114,7 @@ def mlflow_multimodel_register_example():
         batch_request = RuntimeBatchRequest(
             datasource_name="my_mlflow_datasource",
             data_connector_name="default_runtime_data_connector_name",
-            data_asset_name=f"mlflow_dataframe_{datetime.now()}",
+            data_asset_name=f"mlflow_{stage}_dataframe_{datetime.now()}",
             runtime_parameters={"batch_data": df},
             batch_identifiers={
                 "default_identifier_name": "default_identifier"},
@@ -120,7 +122,9 @@ def mlflow_multimodel_register_example():
         return batch_request
 
     @task
-    def run_ge_checkpoint(df: pd.DataFrame, batch_request: RuntimeBatchRequest):
+    def run_ge_checkpoint(df: pd.DataFrame,
+                          batch_request: RuntimeBatchRequest,
+                          checkpoint_config: CheckpointConfig):
         """Run the Great Expectations Checkpoint
 
         Returns the dataframe if tests succeed.
@@ -134,12 +138,13 @@ def mlflow_multimodel_register_example():
 
         base_path = Path(__file__).parents[2]
         data_context_root_dir = os.path.join(
-            base_path, "include", "great_expectations")
+            base_path, "include", "great_expectations"
+        )
         data_context = ge.data_context.DataContext(
             context_root_dir=data_context_root_dir
         )
         checkpoint = Checkpoint(
-            data_context=data_context, **mlflow_checkpoint_config.to_json_dict()
+            data_context=data_context, **checkpoint_config.to_json_dict()
         )
         result = checkpoint.run(batch_request=batch_request)
         logging.info(result)
@@ -163,6 +168,7 @@ def mlflow_multimodel_register_example():
         df = pd.get_dummies(df, prefix="education", columns=["education"])
         df = pd.get_dummies(df, prefix="occupation", columns=["occupation"])
         df = pd.get_dummies(df, prefix="race", columns=["race"])
+        """NOTE: Do check on one-hot sex column that we can add to the DAG during the webinar"""
         df = pd.get_dummies(df, prefix="sex", columns=["sex"])
         df = pd.get_dummies(df, prefix="income_bracket",
                             columns=["income_bracket"])
@@ -170,6 +176,7 @@ def mlflow_multimodel_register_example():
                             columns=["native_country"])
 
         # Bin Ages
+        """NOTE: Add expectation in preprocessing to make sure ages are below 100"""
         df["age_bins"] = pd.cut(
             x=df["age"], bins=[16, 29, 39, 49, 59, 100], labels=[1, 2, 3, 4, 5]
         )
@@ -369,10 +376,16 @@ def mlflow_multimodel_register_example():
 
     df = load_data()
     clean_data = preprocessing(df)
-    batch_request = build_ge_batch_request(clean_data)
-    checked_data = run_ge_checkpoint(clean_data, batch_request)
+    preprocess_batch_request = build_ge_batch_request(clean_data, "preprocess")
+    checked_data = run_ge_checkpoint(
+        clean_data, preprocess_batch_request, mlflow_preprocess_checkpoint_config
+    )
     features = feature_engineering(checked_data)
-    run_ids = grid_search_cv(features)
+    feature_batch_request = build_ge_batch_request(features, "feature")
+    checked_features = run_ge_checkpoint(
+        features, feature_batch_request, mlflow_feature_checkpoint_config
+    )
+    run_ids = grid_search_cv(checked_features)
     best_model_params = get_best_model(run_ids)
     final_model_run_id = build_best_model(best_model_params, features)
     register_model(final_model_run_id)
