@@ -132,7 +132,7 @@ with DAG(
     """
     load_s3_to_snowflake = S3ToSnowflakeOperator(
         task_id="load_s3_to_snowflake",
-        prefix="test/tripdata",
+        prefix=s3_key_prefix,
         stage=f"{table}_STAGE",
         table=f"{table}_AUDIT",
         file_format="(type = 'CSV', skip_header = 1, time_format = 'YYYY-MM-DD HH24:MI:SS')",
