@@ -21,9 +21,11 @@ from include.great_expectations.configs.snowflake_configs import (
 from include.libs.schema_reg.base_schema_transforms import snowflake_load_column_string
 
 
-# This table variable is a placeholder, in a live environment, it is better
-# to pull the table info from a Variable in a template
+# These variables are a placeholder. In a live environment, it is better
+# to pull the info from a Variable.
 table = "YELLOW_TRIPDATA"
+s3_key_prefix = "tripdata"
+s3_bucket = "your-test-bucket"  # replace this with your bucket name
 snowflake_conn = "snowflake_default"
 base_path = Path(__file__).parents[2]
 # To see the failure case, change data_date from "2019-01" to "2019-02"
@@ -73,8 +75,8 @@ with DAG(
     upload_to_s3 = LocalFilesystemToS3Operator(
         task_id="upload_to_s3",
         filename=data_file,
-        dest_key="{{ var.json.aws_configs.s3_key_prefix }}/tripdata/yellow_tripdata_sample.csv",
-        dest_bucket="{{ var.json.aws_configs.s3_bucket }}",
+        dest_key=f"{s3_key_prefix}/yellow_tripdata_sample.csv",
+        dest_bucket=s3_bucket,
         aws_conn_id="aws_default",
         replace=True,
     )
