@@ -30,11 +30,37 @@ datasources:
         class_name: RuntimeDataConnector
         batch_identifiers:
           - default_identifier_name
+  my_mlflow_datasource:
+    execution_engine:
+      class_name: PandasExecutionEngine
+    class_name: Datasource
+    data_connectors:
+      default_runtime_data_connector_name:
+        class_name: RuntimeDataConnector
+        batch_identifiers:
+          - default_identifier_name
+      default_inferred_data_connector_name:
+        class_name: RuntimeDataConnector
+        batch_identifiers:
+          - default_identifier_name
   my_bigquery_datasource:
     class_name: Datasource
     execution_engine:
       class_name: SqlAlchemyExecutionEngine
       connection_string: ${my_bigquery_db}
+    data_connectors:
+      default_runtime_data_connector_name:
+        class_name: RuntimeDataConnector
+        batch_identifiers:
+          - default_identifier_name
+      default_inferred_data_connector_name:
+        class_name: InferredAssetSqlDataConnector
+        include_schema_name: false
+  my_public_bigquery_datasource:
+    class_name: Datasource
+    execution_engine:
+      class_name: SqlAlchemyExecutionEngine
+      connection_string: ${my_public_bigquery_db}
     data_connectors:
       default_runtime_data_connector_name:
         class_name: RuntimeDataConnector
