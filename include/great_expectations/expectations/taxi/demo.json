@@ -1,7 +1,60 @@
 {
   "data_asset_type": null,
   "expectation_suite_name": "taxi.demo",
-  "expectations": [],
+  "expectations": [
+    {
+      "expectation_context": {
+        "description": null
+      },
+      "expectation_type": "expect_table_row_count_to_be_between",
+      "ge_cloud_id": null,
+      "kwargs": {
+        "max_value": 11000,
+        "min_value": 9000
+      },
+      "meta": {}
+    },
+    {
+      "expectation_context": {
+        "description": null
+      },
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "ge_cloud_id": null,
+      "kwargs": {
+        "column": "vendor_id"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_context": {
+        "description": null
+      },
+      "expectation_type": "expect_column_distinct_values_to_be_in_set",
+      "ge_cloud_id": null,
+      "kwargs": {
+        "column": "vendor_id",
+        "value_set": [
+          1,
+          2,
+          4
+        ]
+      },
+      "meta": {}
+    },
+    {
+      "expectation_context": {
+        "description": null
+      },
+      "expectation_type": "expect_column_values_to_be_between",
+      "ge_cloud_id": null,
+      "kwargs": {
+        "column": "passenger_count",
+        "max_value": 6,
+        "min_value": 1
+      },
+      "meta": {}
+    }
+  ],
   "ge_cloud_id": null,
   "meta": {
     "great_expectations_version": "0.13.49"
