@@ -4,6 +4,7 @@ apache-airflow-providers-postgres>=1.0.2
 <<<<<<< HEAD
 apache-airflow-providers-snowflake>=2.5.0
 airflow-provider-great-expectations==0.1.3
+<<<<<<< HEAD
 =======
 apache-airflow-providers-snowflake>=2.1.0
 airflow-provider-great-expectations==0.1.1
@@ -14,10 +15,7 @@ dbt-postgres
 dbt-redshift
 dbt-snowflake
 dbt-bigquery
+=======
+airflow-provider-firebolt==0.1.0
+>>>>>>> 02caaaf (Update Firebolt DAG with new operators, better docstring, and inline sql. Update Firebolt provider version.)
 great-expectations==0.13.49
-lightgbm==3.2.1
-matplotlib==3.5.1
-mlflow==1.23.0
-pandas==1.3.4
-scikit-learn==1.0.1
-sqlalchemy-bigquery==1.3.0
