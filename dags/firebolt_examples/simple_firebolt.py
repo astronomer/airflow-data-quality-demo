@@ -70,37 +70,14 @@ with DAG(
 
     create_table = FireboltOperator(
         task_id="create_table",
-        sql=f"""
-        CREATE DIMENSION TABLE {FIREBOLT_SAMPLE_TABLE}
-        (id INT,
-            y INT,
-            month VARCHAR(25),
-            day VARCHAR(25),
-            ffmc FLOAT,
-            dmc FLOAT,
-            dc FLOAT,
-            isi FLOAT,
-            temp FLOAT,
-            rh FLOAT,
-            wind FLOAT,
-            rain FLOAT,
-            area FLOAT);""",
+        sql="{% include 'create_table %}",
+        params={"table_name": FIREBOLT_SAMPLE_TABLE},
     )
 
     load_data = FireboltOperator(
         task_id="load_data",
-        sql=f"""
-        INSERT INTO {FIREBOLT_SAMPLE_TABLE} VALUES
-        (1,2,'aug','fri',91,166.9,752.6,7.1,25.9,41,3.6,0,0),
-        (2,2,'feb','mon',84,9.3,34,2.1,13.9,40,5.4,0,0),
-        (3,4,'mar','sat',69,2.4,15.5,0.7,17.4,24,5.4,0,0),
-        (4,4,'mar','mon',87.2,23.9,64.7,4.1,11.8,35,1.8,0,0),
-        (5,5,'mar','sat',91.7,35.8,80.8,7.8,15.1,27,5.4,0,0),
-        (6,5,'sep','wed',92.9,133.3,699.6,9.2,26.4,21,4.5,0,0),
-        (7,5,'mar','fri',86.2,26.2,94.3,5.1,8.2,51,6.7,0,0),
-        (8,6,'mar','fri',91.7,33.3,77.5,9,8.3,97,4,0.2,0),
-        (9,9,'feb','thu',84.2,6.8,26.6,7.7,6.7,79,3.1,0,0);
-        """
+        sql="{% include 'load_forestfire_data %}",
+        params={"table_name": FIREBOLT_SAMPLE_TABLE},
     )
 
     with TaskGroup(group_id="aggregate_quality_checks") as check_group:
@@ -113,7 +90,8 @@ with DAG(
 
     drop_table = FireboltOperator(
         task_id="drop_table",
-        sql="DROP TABLE IF EXISTS forest_fire;",
+        sql="{% include 'drop_table %}",
+        params={"table_name": FIREBOLT_SAMPLE_TABLE},
     )
 
     stop_engine = FireboltStopEngineOperator(
