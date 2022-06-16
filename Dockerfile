@@ -1,4 +1,4 @@
-FROM quay.io/astronomer/ap-airflow:2.2.3-onbuild
+FROM quay.io/astronomer/astro-runtime:5.0.2
 ENV AIRFLOW__CORE__ENABLE_XCOM_PICKLING=True
 ENV AIRFLOW__CORE__XCOM_BACKEND=include.gcs_xcom_backend.GCSXComBackend
 
