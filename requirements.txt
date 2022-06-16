@@ -3,6 +3,7 @@ apache-airflow-providers-google==6.3.0
 apache-airflow-providers-postgres>=1.0.2
 apache-airflow-providers-snowflake>=2.5.0
 airflow-provider-great-expectations==0.1.3
+airflow-provider-firebolt>=0.1.1
 dbt-core
 dbt-postgres
 dbt-redshift
