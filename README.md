@@ -5,6 +5,7 @@ or provider. Specific data stores need connections and may require accounts with
 
 ### Requirements
 The Astronomer CLI and Docker installed locally are needed to run all DAGs in this repo. Additional requirements per project are listed below.
+Provider packages are listed in the `requirements.txt` file.
 
 #### Redshift DAGs:
 - An AWS account
@@ -18,6 +19,9 @@ The Astronomer CLI and Docker installed locally are needed to run all DAGs in th
 
 #### Snowflake DAGs:
 - A Snowflake account
+
+#### Firebolt DAGs:
+- A Firebolt account
 
 #### Great Expectations DAGs:
 - An account with service roles and tables as specified in one of the data stores above
@@ -51,6 +55,9 @@ Variables needed are specified in each DAG and can be set under `Admin -> Variab
 
 #### Snowflake DAGs:
 In addition to the Getting Started steps, a connection to Snowflake is needed to run DAGs. Under `Admin -> Connections` in the Airflow UI, add a new connection with Conn ID as `snowflake_default`. The connection type is `Snowflake`. The host field should be the full URL that you use to log into Snowflake, for example `https://[account].[region].snowflakecomputing.com`. Fill out the `Login`, `Password`, `Schema`, `Account`, `Database`, `Region`, `Role`, and `Warehouse` fields with your information.
+
+#### Firebolt DAGs:
+In addition to the Getting Started steps, a connection to Firebolt is needed to run DAGs. Under `Admin -> Connections` in the Airflow UI, add a new connection with Conn ID as `firebolt_default`. The connection type is `Firebolt`. The host field should be `api.app.firebolt.com`. Fill in the `Login`, `Password` with your account login and password. In the `Advanced Connection Properties` field, enter at least an engine name in a dictionary, e.g.: `{"engine_name": "firebolt_test_general_purpose"}`.
 
 #### Great Expectations DAGs:
 In addition to the Getting Started steps, Great Expectations requires its own connections in addition to the Airflow Connections needed by other tasks in the DAG when using outside sources. These connections can be made in the file located at `include/great_expectations/uncommitted/config_variables.yml`. Note: you will have to create this file on your own, it does not come as part of the repository. Example connections in YAML are of the form:

@@ -2,6 +2,9 @@
 .astrocloud
 .github
 .git
+.gitignore
+venv/
+tests/
 .env
 airflow_settings.yaml
 logs/
