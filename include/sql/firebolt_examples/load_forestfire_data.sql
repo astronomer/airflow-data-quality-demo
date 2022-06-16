@@ -1,4 +1,4 @@
-INSERT INTO {{ params.table_name }} VALUES
+INSERT INTO {{ params.table }} VALUES
   (1,2,'aug','fri',91,166.9,752.6,7.1,25.9,41,3.6,0,0),
   (2,2,'feb','mon',84,9.3,34,2.1,13.9,40,5.4,0,0),
   (3,4,'mar','sat',69,2.4,15.5,0.7,17.4,24,5.4,0,0),

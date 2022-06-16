@@ -70,14 +70,14 @@ with DAG(
 
     create_table = FireboltOperator(
         task_id="create_table",
-        sql="{% include 'create_table %}",
-        params={"table_name": FIREBOLT_SAMPLE_TABLE},
+        sql="create_table.sql",
+        params={"table": FIREBOLT_SAMPLE_TABLE},
     )
 
     load_data = FireboltOperator(
         task_id="load_data",
-        sql="{% include 'load_forestfire_data %}",
-        params={"table_name": FIREBOLT_SAMPLE_TABLE},
+        sql="load_forestfire_data.sql",
+        params={"table": FIREBOLT_SAMPLE_TABLE},
     )
 
     with TaskGroup(group_id="aggregate_quality_checks") as check_group:
@@ -90,8 +90,8 @@ with DAG(
 
     drop_table = FireboltOperator(
         task_id="drop_table",
-        sql="{% include 'drop_table %}",
-        params={"table_name": FIREBOLT_SAMPLE_TABLE},
+        sql="drop_table.sql",
+        params={"table": FIREBOLT_SAMPLE_TABLE},
     )
 
     stop_engine = FireboltStopEngineOperator(
