@@ -1,10 +1,6 @@
-<<<<<<< HEAD
 .astro
 .astrocloud
 .github
-=======
-.astrocloud
->>>>>>> 7dc7131 (Updates to Firebolt DAG to use templated SQL again, updated Firebolt version, add Firebolt section to README. Bump Astro version in Dockerfile and remove unused sql template.)
 .git
 .gitignore
 venv/
