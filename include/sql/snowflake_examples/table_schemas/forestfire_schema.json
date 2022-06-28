@@ -1,0 +1,39 @@
+{
+    "title": "forestfire_example",
+    "forestfire": {
+        "properties": {
+            "ID": {"type": "int", "description": "source_order=1"},
+            "Y": {"type": "int", "description": "source_order=2"},
+            "MONTH": {"type": "varchar(25)", "description": "source_order=3"},
+            "DAY": {"type": "varchar(25)", "description": "source_order=4"},
+            "FFMC": {"type": "float", "description": "source_order=5"},
+            "DMC": {"type": "float", "description": "source_order=6"},
+            "DC": {"type": "float", "description": "source_order=7"},
+            "ISI": {"type": "float", "description": "source_order=8"},
+            "TEMP": {"type": "float", "description": "source_order=9"},
+            "RH": {"type": "float", "description": "source_order=10"},
+            "WIND": {"type": "float", "description": "source_order=11"},
+            "RAIN": {"type": "float", "description": "source_order=12"},
+            "AREA": {"type": "float", "description": "source_order=13"}
+        },
+        "dimensions": ["id"],
+        "metrics":[
+            "y",
+            "month",
+            "day",
+            "ffmc",
+            "dmc",
+            "dc",
+            "isi",
+            "temp",
+            "rh",
+            "wind",
+            "rain",
+            "area"
+        ],
+         "cluster_keys": {
+            "columns":["ID"],
+            "description": null
+        }
+    }
+}
