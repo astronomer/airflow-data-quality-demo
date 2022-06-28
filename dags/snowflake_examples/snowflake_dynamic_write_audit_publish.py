@@ -9,15 +9,15 @@ from airflow.providers.snowflake.operators.snowflake import SnowflakeOperator
 from airflow.utils.dates import datetime
 from airflow.utils.task_group import TaskGroup
 
-from include.common.sql.operators.sql import (
-    SQLColumnCheckOperator, SQLTableCheckOperator
+from include.forestfire_checks.checks import TABLE_CHECKS, COL_CHECKS
+from include.common.sql.operators.snowflake import (
+    SnowflakeColumnCheckOperator, SnowflakeTableCheckOperator
 )
 from include.libs.schema_reg.base_schema_transforms import snowflake_load_column_string
 
 
 SNOWFLAKE_FORESTFIRE_TABLE = "forestfires"
 SNOWFLAKE_AUDIT_TABLE = f"{SNOWFLAKE_FORESTFIRE_TABLE}_AUDIT"
-SNOWFLAKE_CONN_ID = "snowflake_default"
 
 base_path = Path(__file__).parents[2]
 table_schema_path = (
@@ -25,16 +25,15 @@ table_schema_path = (
 )
 
 with DAG(
-    "snowflake_write_audit_publish",
-    description="Example DAG showcasing loading and data quality checking with Snowflake.",
+    "snowflake_dynamic_write_audit_publish",
+    description="Example DAG showcasing loading and data quality checking with Snowflake and dynamic task mapping.",
     start_date=datetime(2021, 1, 1),
     schedule_interval=None,
     template_searchpath="/usr/local/airflow/include/sql/snowflake_examples/",
     catchup=False,
-    default_args={"conn_id": SNOWFLAKE_CONN_ID, "snowflake_conn_id": SNOWFLAKE_CONN_ID}
 ) as dag:
     """
-    ### Simple ELT Pipeline with Data Quality Checks Using Snowflake
+    ### Simple ELT Pipeline with Data Quality Checks Using Snowflake and Dynamic Task Mapping
     """
 
     """
@@ -73,20 +72,22 @@ with DAG(
         #### Column-level data quality check
         Run data quality checks on columns of the audit table
         """
-        column_checks = SQLColumnCheckOperator(
+        column_checks = SnowflakeColumnCheckOperator.partial(
             task_id="column_checks",
             table=SNOWFLAKE_AUDIT_TABLE,
-            column_mapping={"id": {"null_check": {"equal_to": 0}}}
+        ).expand(
+            column_mapping=COL_CHECKS
         )
 
         """
         #### Table-level data quality check
         Run data quality checks on the audit table
         """
-        table_checks = SQLTableCheckOperator(
+        table_checks = SnowflakeTableCheckOperator.partial(
             task_id="table_checks",
             table=SNOWFLAKE_AUDIT_TABLE,
-            checks={"row_count_check": {"check_statement": "COUNT(*) = 9"}}
+        ).expand(
+            checks=TABLE_CHECKS
         )
 
     with open(
