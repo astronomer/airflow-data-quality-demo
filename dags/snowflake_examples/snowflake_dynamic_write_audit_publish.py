@@ -30,6 +30,7 @@ with DAG(
     start_date=datetime(2021, 1, 1),
     schedule_interval=None,
     template_searchpath="/usr/local/airflow/include/sql/snowflake_examples/",
+    default_args={"conn_id": "snowflake_default"},
     catchup=False,
 ) as dag:
     """
@@ -75,7 +76,6 @@ with DAG(
         column_checks = SQLColumnCheckOperator.partial(
             task_id="column_checks",
             table=SNOWFLAKE_AUDIT_TABLE,
-            conn_id="snowflake_default",
         ).expand(
             column_mapping=COL_CHECKS
         )
@@ -87,7 +87,6 @@ with DAG(
         table_checks = SQLTableCheckOperator.partial(
             task_id="table_checks",
             table=SNOWFLAKE_AUDIT_TABLE,
-            conn_id="snowflake_default",
         ).expand(
             checks=TABLE_CHECKS
         )
