@@ -10,8 +10,8 @@ from airflow.utils.dates import datetime
 from airflow.utils.task_group import TaskGroup
 
 from include.forestfire_checks.checks import TABLE_CHECKS, COL_CHECKS
-from include.common.sql.operators.snowflake import (
-    SnowflakeColumnCheckOperator, SnowflakeTableCheckOperator
+from include.common.sql.operators.sql import (
+    SQLColumnCheckOperator, SQLTableCheckOperator
 )
 from include.libs.schema_reg.base_schema_transforms import snowflake_load_column_string
 
@@ -72,9 +72,10 @@ with DAG(
         #### Column-level data quality check
         Run data quality checks on columns of the audit table
         """
-        column_checks = SnowflakeColumnCheckOperator.partial(
+        column_checks = SQLColumnCheckOperator.partial(
             task_id="column_checks",
             table=SNOWFLAKE_AUDIT_TABLE,
+            conn_id="snowflake_default",
         ).expand(
             column_mapping=COL_CHECKS
         )
@@ -83,9 +84,10 @@ with DAG(
         #### Table-level data quality check
         Run data quality checks on the audit table
         """
-        table_checks = SnowflakeTableCheckOperator.partial(
+        table_checks = SQLTableCheckOperator.partial(
             task_id="table_checks",
             table=SNOWFLAKE_AUDIT_TABLE,
+            conn_id="snowflake_default",
         ).expand(
             checks=TABLE_CHECKS
         )
