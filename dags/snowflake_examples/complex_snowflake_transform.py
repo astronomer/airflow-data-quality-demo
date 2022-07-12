@@ -2,7 +2,7 @@ import json
 
 from airflow import DAG
 from airflow.models.baseoperator import chain
-from airflow.operators.dummy_operator import DummyOperator
+from airflow.operators.empty import EmptyOperator
 #from airflow.providers.common.sql.operators import SQLColumnCheckOperator, SQLTableCheckOperator
 from airflow.providers.snowflake.operators.snowflake import SnowflakeOperator
 from airflow.utils.dates import datetime
@@ -53,14 +53,14 @@ with DAG(
 
     create_cost_table = SnowflakeOperator(
         task_id="create_cost_table",
-        sql="create_cost_table",
+        sql="create_cost_table.sql",
         params={"table_name": SNOWFLAKE_COST_TABLE}
     )
 
     create_forestfire_cost_table = SnowflakeOperator(
         task_id="create_forestfire_cost_table",
-        sql="create_forestfire_cost_table",
-        params={"table_name": SNOWFLAKE_COST_TABLE}
+        sql="create_forestfire_cost_table.sql",
+        params={"table_name": SNOWFLAKE_FORESTFIRE_COST_TABLE}
     )
 
     """
@@ -76,13 +76,13 @@ with DAG(
 
     load_cost_data = SnowflakeOperator(
         task_id="load_cost_data",
-        sql="load_snowflake_cost_data.sql",
+        sql="load_cost_data.sql",
         params={"table_name": SNOWFLAKE_COST_TABLE}
     )
 
     load_forestfire_cost_data  = SnowflakeOperator(
         task_id="load_forestfire_cost_data",
-        sql="load_snowflake_forestfire_cost_data.sql",
+        sql="load_forestfire_cost_data.sql",
         params={"table_name": SNOWFLAKE_FORESTFIRE_COST_TABLE}
     )
 
@@ -138,12 +138,12 @@ with DAG(
         """
         cost_column_checks = SQLColumnCheckOperator(
             task_id="cost_column_checks",
-            table=SNOWFLAKE_FORESTFIRE_TABLE,
+            table=SNOWFLAKE_COST_TABLE,
             column_mapping={
                 "ID": {"null_check": {"equal_to": 0}},
-                "LAND_DAMAGE_COST": {"geq_than": 0},
-                "PROPERTY_DAMAGE_COST": {"geq_than": 0},
-                "LOST_PROFITS_COST": {"geq_than": 0},
+                "LAND_DAMAGE_COST": {"min": {"geq_than": 0}},
+                "PROPERTY_DAMAGE_COST": {"min": {"geq_than": 0}},
+                "LOST_PROFITS_COST": {"min": {"geq_than": 0}},
             }
         )
 
@@ -153,7 +153,7 @@ with DAG(
         """
         cost_table_checks = SQLTableCheckOperator(
             task_id="cost_table_checks",
-            table=SNOWFLAKE_FORESTFIRE_TABLE,
+            table=SNOWFLAKE_COST_TABLE,
             checks={"row_count_check": {"check_statement": ROW_COUNT_CHECK}}
         )
 
@@ -167,7 +167,7 @@ with DAG(
         """
         forestfire_costs_column_checks = SQLColumnCheckOperator(
             task_id="forestfire_costs_column_checks",
-            table=SNOWFLAKE_FORESTFIRE_TABLE,
+            table=SNOWFLAKE_FORESTFIRE_COST_TABLE,
             column_mapping={"AREA": {"min": {"geq_than": 0}}}
         )
 
@@ -177,10 +177,10 @@ with DAG(
         """
         table_cheforestfire_costs_table_checkscks = SQLTableCheckOperator(
             task_id="forestfire_costs_table_checks",
-            table=SNOWFLAKE_FORESTFIRE_TABLE,
+            table=SNOWFLAKE_FORESTFIRE_COST_TABLE,
             checks={
                 "row_count_check": {"check_statement": ROW_COUNT_CHECK},
-                "total_cost_check": {"check_statement": "land_damage_cost + property_damage_cost + lost_profits_cost = total_cost"}
+                "total_cost_check": {"check_statement": "SUM(land_damage_cost + property_damage_cost + lost_profits_cost) = SUM(total_cost)"}
             }
         )
 
@@ -196,7 +196,7 @@ with DAG(
     )
 
     delete_cost_table = SnowflakeOperator(
-        task_id="delete_coststable",
+        task_id="delete_costs_table",
         sql="delete_snowflake_table.sql",
         params={"table_name": SNOWFLAKE_COST_TABLE}
     )
@@ -207,13 +207,17 @@ with DAG(
         params={"table_name": SNOWFLAKE_FORESTFIRE_COST_TABLE}
     )
 
-    begin = DummyOperator(task_id="begin")
-    end = DummyOperator(task_id="end")
+    begin = EmptyOperator(task_id="begin")
+    create_done = EmptyOperator(task_id="create_done")
+    load_done = EmptyOperator(task_id="load_done")
+    end = EmptyOperator(task_id="end")
 
     chain(
         begin,
         [create_forestfire_table, create_cost_table, create_forestfire_cost_table],
+        create_done,
         [load_forestfire_data, load_cost_data],
+        load_done,
         [quality_check_group_forestfire, quality_check_group_cost],
         load_forestfire_cost_data,
         quality_check_group_forestfire_costs,

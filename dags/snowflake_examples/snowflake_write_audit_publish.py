@@ -76,7 +76,7 @@ with DAG(
         column_checks = SQLColumnCheckOperator(
             task_id="column_checks",
             table=SNOWFLAKE_AUDIT_TABLE,
-            column_mapping={"id": {"null_check": {"equal_to": 0}}}
+            column_mapping={"ID": {"null_check": {"equal_to": 0}}}
         )
 
         """

@@ -44,7 +44,7 @@ with DAG('simple_snowflake',
     """
     create_table = SnowflakeOperator(
         task_id="create_table",
-        sql="{% include 'create_snowflake_table.sql' %}",
+        sql="{% include 'create_forestfire_table.sql' %}",
         params={"table_name": SNOWFLAKE_FORESTFIRE_TABLE}
     )
 
