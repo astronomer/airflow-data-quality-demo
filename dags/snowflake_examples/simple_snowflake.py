@@ -2,7 +2,7 @@ import json
 
 from airflow import DAG
 from airflow.models.baseoperator import chain
-from airflow.operators.dummy_operator import DummyOperator
+from airflow.operators.empty import EmptyOperator
 from airflow.providers.snowflake.operators.snowflake import (
     SnowflakeOperator,
     SnowflakeCheckOperator,
@@ -96,8 +96,8 @@ with DAG('simple_snowflake',
         params={"table_name": SNOWFLAKE_FORESTFIRE_TABLE}
     )
 
-    begin = DummyOperator(task_id='begin')
-    end = DummyOperator(task_id='end')
+    begin = EmptyOperator(task_id='begin')
+    end = EmptyOperator(task_id='end')
 
     chain(
         begin,

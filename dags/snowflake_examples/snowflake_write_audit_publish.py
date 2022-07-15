@@ -4,14 +4,12 @@ from pathlib import Path
 
 from airflow import DAG
 from airflow.models.baseoperator import chain
-from airflow.operators.dummy_operator import DummyOperator
+from airflow.operators.empty import EmptyOperator
+from airflow.providers.common.sql.operators import SQLColumnCheckOperator, SQLTableCheckOperator
 from airflow.providers.snowflake.operators.snowflake import SnowflakeOperator
 from airflow.utils.dates import datetime
 from airflow.utils.task_group import TaskGroup
 
-from include.common.sql.operators.sql import (
-    SQLColumnCheckOperator, SQLTableCheckOperator
-)
 from include.libs.schema_reg.base_schema_transforms import snowflake_load_column_string
 
 
@@ -127,8 +125,8 @@ with DAG(
         trigger_rule="all_success"
     )
 
-    begin = DummyOperator(task_id="begin")
-    end = DummyOperator(task_id="end")
+    begin = EmptyOperator(task_id="begin")
+    end = EmptyOperator(task_id="end")
 
     chain(
         begin,

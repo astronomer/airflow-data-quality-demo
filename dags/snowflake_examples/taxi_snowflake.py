@@ -3,7 +3,7 @@ import pandas as pd
 from airflow import DAG
 from airflow.decorators import task
 from airflow.models.baseoperator import chain
-from airflow.operators.dummy_operator import DummyOperator
+from airflow.operators.empty import EmptyOperator
 from airflow.utils.dates import datetime
 from airflow.utils.task_group import TaskGroup
 from airflow.providers.amazon.aws.transfers.local_to_s3 import LocalFilesystemToS3Operator
@@ -44,9 +44,9 @@ with DAG(
     Task.
     """
 
-    begin = DummyOperator(task_id="begin")
-    end = DummyOperator(task_id="end")
-    converge_1 = DummyOperator(task_id="converge_1")
+    begin = EmptyOperator(task_id="begin")
+    end = EmptyOperator(task_id="end")
+    converge_1 = EmptyOperator(task_id="converge_1")
 
     @task
     def add_upload_date(file_path, upload_date):
