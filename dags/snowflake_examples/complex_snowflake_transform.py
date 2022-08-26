@@ -3,7 +3,7 @@ import json
 from airflow import DAG
 from airflow.models.baseoperator import chain
 from airflow.operators.empty import EmptyOperator
-from airflow.providers.common.sql.operators import SQLColumnCheckOperator, SQLTableCheckOperator
+from airflow.providers.common.sql.operators.sql import SQLColumnCheckOperator, SQLTableCheckOperator
 from airflow.providers.snowflake.operators.snowflake import SnowflakeOperator
 from airflow.utils.dates import datetime
 from airflow.utils.task_group import TaskGroup
@@ -100,7 +100,7 @@ with DAG(
     """
     with TaskGroup(
         group_id="quality_check_group_forestfire",
-        default_args={"conn_id": SNOWFLAKE_CONN_ID, "snowflake_conn_id": SNOWFLAKE_CONN_ID}
+        default_args={"conn_id": SNOWFLAKE_CONN_ID}
     ) as quality_check_group_forestfire:
         """
         #### Column-level data quality check
@@ -111,7 +111,7 @@ with DAG(
             table=SNOWFLAKE_FORESTFIRE_TABLE,
             column_mapping={
                 "ID": {"null_check": {"equal_to": 0}},
-                "RH": {"max": {"leq_than": 100}}
+                "RH": {"max": {"leq_to": 100}}
             }
         )
 
@@ -127,7 +127,7 @@ with DAG(
 
     with TaskGroup(
         group_id="quality_check_group_cost",
-        default_args={"conn_id": SNOWFLAKE_CONN_ID, "snowflake_conn_id": SNOWFLAKE_CONN_ID}
+        default_args={"conn_id": SNOWFLAKE_CONN_ID}
     ) as quality_check_group_cost:
         """
         #### Column-level data quality check
@@ -138,9 +138,9 @@ with DAG(
             table=SNOWFLAKE_COST_TABLE,
             column_mapping={
                 "ID": {"null_check": {"equal_to": 0}},
-                "LAND_DAMAGE_COST": {"min": {"geq_than": 0}},
-                "PROPERTY_DAMAGE_COST": {"min": {"geq_than": 0}},
-                "LOST_PROFITS_COST": {"min": {"geq_than": 0}},
+                "LAND_DAMAGE_COST": {"min": {"geq_to": 0}},
+                "PROPERTY_DAMAGE_COST": {"min": {"geq_to": 0}},
+                "LOST_PROFITS_COST": {"min": {"geq_to": 0}},
             }
         )
 
@@ -156,7 +156,7 @@ with DAG(
 
     with TaskGroup(
         group_id="quality_check_group_forestfire_costs",
-        default_args={"conn_id": SNOWFLAKE_CONN_ID, "snowflake_conn_id": SNOWFLAKE_CONN_ID}
+        default_args={"conn_id": SNOWFLAKE_CONN_ID}
     ) as quality_check_group_forestfire_costs:
         """
         #### Column-level data quality check
@@ -165,7 +165,7 @@ with DAG(
         forestfire_costs_column_checks = SQLColumnCheckOperator(
             task_id="forestfire_costs_column_checks",
             table=SNOWFLAKE_FORESTFIRE_COST_TABLE,
-            column_mapping={"AREA": {"min": {"geq_than": 0}}}
+            column_mapping={"AREA": {"min": {"geq_to": 0}}}
         )
 
         """
