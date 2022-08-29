@@ -28,14 +28,8 @@ with DAG(
     """
     ### Snowflake ELT Pipeline with Multiple Datasets and Data Qality Checks
 
-    Before running the DAG, set the following in an Airflow or Environment Variable:
-    - key:
-
     Ensure a Snowflake Warehouse, Database, Schema, and Role exist for the Snowflake
-    connection provided to the Operator. The names of these data should replace the
-    dummy values at the top of the file.
-
-    A Snowflake Connection is also needed, named `snowflake_default`.
+    connection provided to the operator under the connection ID `snowflake_default`.
     """
 
     """
@@ -172,12 +166,12 @@ with DAG(
         #### Table-level data quality check
         Run data quality checks on the forestfire table
         """
-        table_cheforestfire_costs_table_checkscks = SQLTableCheckOperator(
+        forestfire_costs_table_checks = SQLTableCheckOperator(
             task_id="forestfire_costs_table_checks",
             table=SNOWFLAKE_FORESTFIRE_COST_TABLE,
             checks={
                 "row_count_check": {"check_statement": ROW_COUNT_CHECK},
-                "total_cost_check": {"check_statement": "SUM(land_damage_cost + property_damage_cost + lost_profits_cost) = SUM(total_cost)"}
+                "total_cost_check": {"check_statement": "land_damage_cost + property_damage_cost + lost_profits_cost = total_cost"}
             }
         )
 
