@@ -171,7 +171,7 @@ with DAG(
             table=SNOWFLAKE_FORESTFIRE_COST_TABLE,
             checks={
                 "row_count_check": {"check_statement": ROW_COUNT_CHECK},
-                "total_cost_check": {"check_statement": "land_damage_cost + property_damage_cost + lost_profits_cost = total_cost"}
+                "total_cost_check": {"check_statement": "SUM(land_damage_cost + property_damage_cost + lost_profits_cost) = SUM(total_cost)"}
             }
         )
 
