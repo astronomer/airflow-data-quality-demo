@@ -5,7 +5,7 @@ from pathlib import Path
 from airflow import DAG
 from airflow.models.baseoperator import chain
 from airflow.operators.empty import EmptyOperator
-from airflow.providers.common.sql.operators import SQLColumnCheckOperator, SQLTableCheckOperator
+from airflow.providers.common.sql.operators.sql import SQLColumnCheckOperator, SQLTableCheckOperator
 from airflow.providers.snowflake.operators.snowflake import SnowflakeOperator
 from airflow.utils.dates import datetime
 from airflow.utils.task_group import TaskGroup
@@ -29,7 +29,7 @@ with DAG(
     schedule_interval=None,
     template_searchpath="/usr/local/airflow/include/sql/snowflake_examples/",
     catchup=False,
-    default_args={"conn_id": SNOWFLAKE_CONN_ID, "snowflake_conn_id": SNOWFLAKE_CONN_ID}
+    default_args={"conn_id": SNOWFLAKE_CONN_ID}
 ) as dag:
     """
     ### Simple ELT Pipeline with Data Quality Checks Using Snowflake
