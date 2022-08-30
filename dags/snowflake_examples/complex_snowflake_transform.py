@@ -4,6 +4,7 @@ from airflow import DAG
 from airflow.models.baseoperator import chain
 from airflow.operators.empty import EmptyOperator
 from airflow.providers.common.sql.operators.sql import SQLColumnCheckOperator, SQLTableCheckOperator
+from airflow.providers.slack.operators.slack_webhook import SlackWebhookOperator
 from airflow.providers.snowflake.operators.snowflake import SnowflakeOperator
 from airflow.utils.dates import datetime
 from airflow.utils.task_group import TaskGroup
@@ -16,6 +17,27 @@ SNOWFLAKE_FORESTFIRE_COST_TABLE = "forestfire_costs"
 SNOWFLAKE_CONN_ID = "snowflake_default"
 
 ROW_COUNT_CHECK = "COUNT(*) = 9"
+
+def slack_failure_notification(context):
+    task_id = context.get("task_instance").task_id
+    dag_id = context.get("task_instance").dag_id
+    exec_date = context.get("execution_date")
+    log_url = context.get("task_instance").log_url
+    slack_msg = f"""
+            :red_circle: Task Failed. 
+            *Task*: {task_id}  
+            *Dag*: {dag_id} 
+            *Execution Time*: {exec_date}  
+            *Log Url*: {log_url} 
+            """
+    failed_alert = SlackWebhookOperator(
+        task_id="slack_notification",
+        http_conn_id="slack_webhook",
+        message=slack_msg,
+        channel="data_engineering",
+        username="failbot",
+    )
+    return failed_alert.execute(context=context)
 
 with DAG(
     "complex_snowflake_transform",
@@ -94,7 +116,10 @@ with DAG(
     """
     with TaskGroup(
         group_id="quality_check_group_forestfire",
-        default_args={"conn_id": SNOWFLAKE_CONN_ID}
+        default_args={
+            "conn_id": SNOWFLAKE_CONN_ID,
+            "on_failure_callback": slack_failure_notification
+        }
     ) as quality_check_group_forestfire:
         """
         #### Column-level data quality check
@@ -121,7 +146,10 @@ with DAG(
 
     with TaskGroup(
         group_id="quality_check_group_cost",
-        default_args={"conn_id": SNOWFLAKE_CONN_ID}
+        default_args={
+            "conn_id": SNOWFLAKE_CONN_ID,
+            "on_failure_callback": slack_failure_notification
+        }
     ) as quality_check_group_cost:
         """
         #### Column-level data quality check
@@ -150,7 +178,10 @@ with DAG(
 
     with TaskGroup(
         group_id="quality_check_group_forestfire_costs",
-        default_args={"conn_id": SNOWFLAKE_CONN_ID}
+        default_args={
+            "conn_id": SNOWFLAKE_CONN_ID,
+            "on_failure_callback": slack_failure_notification
+        }
     ) as quality_check_group_forestfire_costs:
         """
         #### Column-level data quality check
