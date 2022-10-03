@@ -1,3 +1,30 @@
+"""
+### Simple EL Pipeline with Data Integrity and Quality Checks 3
+This is the third in a series of DAGs showing an EL pipeline with data integrity
+and data quality checking. A single file is uploaded to S3, then its ETag is
+verified against the MD5 hash of the local file. The two should match, which
+will allow the DAG to continue to the next task. A second data load from S3
+to Redshift is triggered, which is followed by another data integrity check.
+If the check fails, an Airflow Exception is raised. Otherwise, a final data
+quality check is performed on the Redshift table per row for a subset of rows,
+immitating a row-based data quality spot check where the specific ground truth
+is known.
+
+Before running the DAG, set the following in an Airflow or Environment Variable:
+- key: aws_configs
+- value: { "s3_bucket": [bucket_name], "s3_key_prefix": [key_prefix], "redshift_table": [table_name]}
+Fully replacing [bucket_name], [key_prefix], and [table_name].
+
+What makes this a simple data quality case is:
+1. Absolute ground truth: the local CSV file is considered perfect and immutable.
+2. No transformations or business logic.
+3. Exact values of data to quality check are known.
+
+This demo solves the issue simple_el_2 left open: quality checking the data
+in the uploaded file. This DAG is a good starting point for a data integrity
+and data quality check.
+"""
+
 import hashlib
 import json
 
@@ -31,36 +58,11 @@ with DAG(
     "simple_redshift_3",
     start_date=datetime(2021, 7, 7),
     description="A sample Airflow DAG to load data from csv files to S3 and then Redshift, with data integrity and quality checks.",
+    doc_md=__doc__,
     schedule_interval=None,
     template_searchpath="/usr/local/airflow/include/sql/redshift_examples/",
     catchup=False,
 ) as dag:
-    """
-    ### Simple EL Pipeline with Data Integrity and Quality Checks 3
-    This is the third in a series of DAGs showing an EL pipeline with data integrity
-    and data quality checking. A single file is uploaded to S3, then its ETag is
-    verified against the MD5 hash of the local file. The two should match, which
-    will allow the DAG to continue to the next task. A second data load from S3
-    to Redshift is triggered, which is followed by another data integrity check.
-    If the check fails, an Airflow Exception is raised. Otherwise, a final data
-    quality check is performed on the Redshift table per row for a subset of rows,
-    immitating a row-based data quality spot check where the specific ground truth
-    is known.
-
-    Before running the DAG, set the following in an Airflow or Environment Variable:
-    - key: aws_configs
-    - value: { "s3_bucket": [bucket_name], "s3_key_prefix": [key_prefix], "redshift_table": [table_name]}
-    Fully replacing [bucket_name], [key_prefix], and [table_name].
-
-    What makes this a simple data quality case is:
-    1. Absolute ground truth: the local CSV file is considered perfect and immutable.
-    2. No transformations or business logic.
-    3. Exact values of data to quality check are known.
-
-    This demo solves the issue simple_el_2 left open: quality checking the data
-    in the uploaded file. This DAG is a good starting point for a data integrity
-    and data quality check.
-    """
 
     upload_file = LocalFilesystemToS3Operator(
         task_id="upload_to_s3",

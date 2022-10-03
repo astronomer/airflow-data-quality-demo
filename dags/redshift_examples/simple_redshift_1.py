@@ -1,3 +1,27 @@
+"""
+### Simple EL Pipeline with Data Integrity Check 1
+This is a very simple DAG showing a minimal EL data pipeline with a data
+integrity check. A single file is uploaded to S3, then its ETag is verified
+against the MD5 hash of the local file. The two should match, which will
+allow the DAG to flow along the "happy path". To see the "sad path", change
+`CSV_FILE_PATH` to `CSV_CORRUPT_FILE_PATH` in the `validate_etag` task.
+
+Before running the DAG, set the following in an Airflow or Environment Variable:
+- key: aws_configs
+- value: { "s3_bucket": [bucket_name], "s3_key_prefix": [key_prefix]}
+Fully replacing [bucket_name] and [key_prefix].
+
+What makes this a simple data quality case is:
+1. Absolute ground truth: the local CSV file is considered perfect and immutable.
+2. Single-step data pipeline: no business logic to complicate things.
+3. Single metric to validate.
+
+This demo works well in the case of validating data that is read from S3, such
+as other data pipelines that will read from S3, or Athena. It would not be
+helpful for data that is read from Redshift, as there is another load step
+that should be validated separately.
+"""
+
 import hashlib
 
 from airflow import DAG, AirflowException
@@ -21,32 +45,10 @@ with DAG(
     "simple_redshift_1",
     start_date=datetime(2021, 7, 7),
     description="A sample Airflow DAG to load data from csv files to S3, then check that all data was uploaded properly.",
+    doc_md=__doc__,
     schedule_interval=None,
     catchup=False,
 ) as dag:
-    """
-    ### Simple EL Pipeline with Data Integrity Check 1
-    This is a very simple DAG showing a minimal EL data pipeline with a data
-    integrity check. A single file is uploaded to S3, then its ETag is verified
-    against the MD5 hash of the local file. The two should match, which will
-    allow the DAG to flow along the "happy path". To see the "sad path", change
-    `CSV_FILE_PATH` to `CSV_CORRUPT_FILE_PATH` in the `validate_etag` task.
-
-    Before running the DAG, set the following in an Airflow or Environment Variable:
-    - key: aws_configs
-    - value: { "s3_bucket": [bucket_name], "s3_key_prefix": [key_prefix]}
-    Fully replacing [bucket_name] and [key_prefix].
-
-    What makes this a simple data quality case is:
-    1. Absolute ground truth: the local CSV file is considered perfect and immutable.
-    2. Single-step data pipeline: no business logic to complicate things.
-    3. Single metric to validate.
-
-    This demo works well in the case of validating data that is read from S3, such
-    as other data pipelines that will read from S3, or Athena. It would not be
-    helpful for data that is read from Redshift, as there is another load step
-    that should be validated separately.
-    """
 
     upload_file = LocalFilesystemToS3Operator(
         task_id="upload_to_s3",

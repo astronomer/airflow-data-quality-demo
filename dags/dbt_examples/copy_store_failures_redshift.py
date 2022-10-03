@@ -1,3 +1,15 @@
+"""
+DAG to run dbt project and tests, then load the store_failures table into
+a permament table so subsequent runs do not overwrite.
+
+For the DAG to work, the following must exist:
+    - An Airflow Connection to Redshift (Postgres connection)
+    - A Redshift Table created with forestfire data (can be
+        created by running the redshift_examples.simple_redshift_el_3 DAG)
+    - A dbt profile with a connection to Redshift in include/dbt/.dbt (.dbt
+        directory is in .gitignore, this must be generated)
+"""
+
 import os
 from datetime import datetime
 
@@ -18,21 +30,12 @@ FFMC_FAIL_TABLE = "FFMC_VALUE_CHECK_FORESTFIRE_TEST_FFMC"
 
 with DAG(
     "dbt.copy_store_failures_redshift",
+    doc_md=__doc__,
     start_date=datetime(2021, 10, 8),
     template_searchpath="/usr/local/airflow/include/sql/dbt_examples/",
     schedule_interval=None,
 ) as dag:
-    """
-    DAG to run dbt project and tests, then load the store_failures table into
-    a permament table so subsequent runs do not overwrite.
 
-    For the DAG to work, the following must exist:
-      - An Airflow Connection to Redshift (Postgres connection)
-      - A Redshift Table created with forestfire data (can be
-          created by running the redshift_examples.simple_redshift_el_3 DAG)
-      - A dbt profile with a connection to Redshift in include/dbt/.dbt (.dbt
-          directory is in .gitignore, this must be generated)
-    """
 
     """
     Run the dbt suite

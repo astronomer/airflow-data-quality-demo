@@ -1,3 +1,17 @@
+"""
+### Simple EL Pipeline with Data Quality Checks Using Redshift and Great Expectations
+
+Before running the DAG, set the following in an Airflow or Environment Variable:
+- key: aws_configs
+- value: { "s3_bucket": [bucket_name], "s3_key_prefix": [key_prefix], "redshift_table": [table_name]}
+Fully replacing [bucket_name], [key_prefix], and [table_name].
+
+What makes this a simple data quality case is:
+1. Absolute ground truth: the local CSV file is considered perfect and immutable.
+2. No transformations or business logic.
+3. Exact values of data to quality check are known.
+"""
+
 import os
 
 from pathlib import Path
@@ -32,23 +46,12 @@ with DAG(
     "great_expectations.redshift",
     start_date=datetime(2021, 1, 1),
     description="Example DAG showcasing loading and data quality checking with Redshift and Great Expectations.",
+    doc_md=__doc__,
     schedule_interval=None,
     template_searchpath=f"{base_path}/include/sql/great_expectations_examples/",
     catchup=False,
 ) as dag:
-    """
-    ### Simple EL Pipeline with Data Quality Checks Using Redshift and Great Expectations
 
-    Before running the DAG, set the following in an Airflow or Environment Variable:
-    - key: aws_configs
-    - value: { "s3_bucket": [bucket_name], "s3_key_prefix": [key_prefix], "redshift_table": [table_name]}
-    Fully replacing [bucket_name], [key_prefix], and [table_name].
-
-    What makes this a simple data quality case is:
-    1. Absolute ground truth: the local CSV file is considered perfect and immutable.
-    2. No transformations or business logic.
-    3. Exact values of data to quality check are known.
-    """
 
     upload_to_s3 = LocalFilesystemToS3Operator(
         task_id="upload_to_s3",

@@ -1,3 +1,16 @@
+"""
+### SQL Check Operators Data Quality Example
+
+Before running the DAG, ensure you have an active and reachable SQL database
+running, with a connection to that database in an Airflow Connection, and
+the data loaded. This DAG **will not** run successfully as-is. For an
+out-of-the-box working demo, see the sql_data_quality_redshift_etl DAG.
+
+Note: The data files for this example do **not** include an `upload_date`
+column. This column is needed for the interval check, and is added as a
+Task in sql_check_redshift_etl.py.
+"""
+
 from airflow import DAG
 from airflow.models.baseoperator import chain
 from airflow.operators.dummy_operator import DummyOperator
@@ -17,25 +30,17 @@ DATES = ["2019-01", "2019-02"]
 
 # By putting conn_id as a default_arg, the arg is passed to every task,
 # reducing boilerplate
-with DAG("sql_data_quality",
-         start_date=datetime(2021, 7, 7),
-         description="A sample Airflow DAG to perform data quality checks using SQL Operators.",
-         schedule_interval=None,
-         default_args={"conn_id": "postgres_default"},
-         template_searchpath="/usr/local/airflow/include/sql/sql_examples/",
-         catchup=False) as dag:
-    """
-    ### SQL Check Operators Data Quality Example
+with DAG(
+    "sql_data_quality",
+    start_date=datetime(2021, 7, 7),
+    description="A sample Airflow DAG to perform data quality checks using SQL Operators.",
+    doc_md=__doc__,
+    schedule_interval=None,
+    default_args={"conn_id": "postgres_default"},
+    template_searchpath="/usr/local/airflow/include/sql/sql_examples/",
+    catchup=False
+) as dag:
 
-    Before running the DAG, ensure you have an active and reachable SQL database
-    running, with a connection to that database in an Airflow Connection, and
-    the data loaded. This DAG **will not** run successfully as-is. For an
-    out-of-the-box working demo, see the sql_data_quality_redshift_etl DAG.
-
-    Note: The data files for this example do **not** include an `upload_date`
-    column. This column is needed for the interval check, and is added as a
-    Task in sql_check_redshift_etl.py.
-    """
 
     begin = DummyOperator(task_id="begin")
     end = DummyOperator(task_id="end")

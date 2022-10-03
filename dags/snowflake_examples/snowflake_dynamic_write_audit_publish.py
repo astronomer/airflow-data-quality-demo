@@ -1,3 +1,7 @@
+"""
+### Simple ELT Pipeline with Data Quality Checks Using Snowflake and Dynamic Task Mapping
+"""
+
 import json
 
 from pathlib import Path
@@ -25,16 +29,13 @@ table_schema_path = (
 with DAG(
     "snowflake_dynamic_write_audit_publish",
     description="Example DAG showcasing loading and data quality checking with Snowflake and dynamic task mapping.",
+    doc_md=__doc__,
     start_date=datetime(2021, 1, 1),
     schedule_interval=None,
     template_searchpath="/usr/local/airflow/include/sql/snowflake_examples/",
     default_args={"conn_id": "snowflake_default"},
     catchup=False,
 ) as dag:
-    """
-    ### Simple ELT Pipeline with Data Quality Checks Using Snowflake and Dynamic Task Mapping
-    """
-
     """
     #### Snowflake audit table creation
     Creates the tables to store sample data for testing

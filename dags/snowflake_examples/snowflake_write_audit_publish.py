@@ -1,3 +1,7 @@
+"""
+### Simple ELT Pipeline with Data Quality Checks Using Snowflake
+"""
+
 import json
 
 from pathlib import Path
@@ -25,15 +29,12 @@ table_schema_path = (
 with DAG(
     "snowflake_write_audit_publish",
     description="Example DAG showcasing loading and data quality checking with Snowflake.",
+    doc_md=__doc__,
     start_date=datetime(2021, 1, 1),
     schedule_interval=None,
     template_searchpath="/usr/local/airflow/include/sql/snowflake_examples/",
-    catchup=False,
-    default_args={"conn_id": SNOWFLAKE_CONN_ID}
+    catchup=False
 ) as dag:
-    """
-    ### Simple ELT Pipeline with Data Quality Checks Using Snowflake
-    """
 
     """
     #### Snowflake audit table creation
@@ -66,7 +67,7 @@ with DAG(
         params={"table_name": SNOWFLAKE_AUDIT_TABLE}
     )
 
-    with TaskGroup(group_id="quality_checks") as quality_check_group:
+    with TaskGroup(group_id="quality_checks", default_args={"conn_id": SNOWFLAKE_CONN_ID}) as quality_check_group:
         """
         #### Column-level data quality check
         Run data quality checks on columns of the audit table

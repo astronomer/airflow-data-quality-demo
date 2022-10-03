@@ -1,3 +1,20 @@
+"""
+### Simple Extract/Load Pipeline with Data Quality Checks Using BigQuery
+
+Before running the DAG, set the following in an Airflow or Environment Variable:
+- key: gcp_project_id
+    value: [gcp_project_id]
+Fully replacing [gcp_project_id] with the actual ID.
+
+Ensure you have a connection to GCP, using a role with access to BigQuery
+and the ability to create, modify, and delete datasets and tables.
+
+What makes this a simple data quality case is:
+1. Absolute ground truth: the local CSV file is considered perfect and immutable.
+2. No transformations or business logic.
+3. Exact values of data to quality check are known.
+"""
+
 import json
 
 from airflow import DAG
@@ -23,26 +40,12 @@ with DAG(
     "simple_bigquery",
     start_date=datetime(2021, 1, 1),
     description="Example DAG showcasing loading and data quality checking with BigQuery.",
+    doc_md=__doc__,
     schedule_interval=None,
     template_searchpath="/usr/local/airflow/include/sql/bigquery_examples/",
     catchup=False,
 ) as dag:
-    """
-    ### Simple Extract/Load Pipeline with Data Quality Checks Using BigQuery
 
-    Before running the DAG, set the following in an Airflow or Environment Variable:
-    - key: gcp_project_id
-      value: [gcp_project_id]
-    Fully replacing [gcp_project_id] with the actual ID.
-
-    Ensure you have a connection to GCP, using a role with access to BigQuery
-    and the ability to create, modify, and delete datasets and tables.
-
-    What makes this a simple data quality case is:
-    1. Absolute ground truth: the local CSV file is considered perfect and immutable.
-    2. No transformations or business logic.
-    3. Exact values of data to quality check are known.
-    """
 
     """
     #### BigQuery dataset creation

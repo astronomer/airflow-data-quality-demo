@@ -1,4 +1,9 @@
-import json
+"""
+### Snowflake ELT Pipeline with Multiple Datasets and Data Qality Checks
+
+Ensure a Snowflake Warehouse, Database, Schema, and Role exist for the Snowflake
+connection provided to the operator under the connection ID `snowflake_default`.
+"""
 
 from airflow import DAG
 from airflow.models.baseoperator import chain
@@ -42,18 +47,12 @@ def slack_failure_notification(context):
 with DAG(
     "complex_snowflake_transform",
     description="Example DAG showcasing loading, transforming, and data quality checking with multiple datasets in Snowflake.",
+    doc_md=__doc__,
     start_date=datetime(2021, 1, 1),
     schedule_interval=None,
     template_searchpath="/usr/local/airflow/include/sql/snowflake_examples/",
     catchup=False
 ) as dag:
-    """
-    ### Snowflake ELT Pipeline with Multiple Datasets and Data Qality Checks
-
-    Ensure a Snowflake Warehouse, Database, Schema, and Role exist for the Snowflake
-    connection provided to the operator under the connection ID `snowflake_default`.
-    """
-
     """
     #### Snowflake table creation
     Create the tables to store sample data.
