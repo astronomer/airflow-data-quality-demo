@@ -1,4 +1,20 @@
-import json
+"""
+### Simple EL Pipeline with Data Quality Checks Using Snowflake
+
+Before running the DAG, set the following in an Airflow or Environment Variable:
+- key:
+
+Ensure a Snowflake Warehouse, Database, Schema, and Role exist for the Snowflake
+connection provided to the Operator. The names of these data should replace the
+dummy values at the top of the file.
+
+A Snowflake Connection is also needed, named `snowflake_default`.
+
+What makes this a simple data quality case is:
+1. Absolute ground truth: the local CSV file is considered perfect and immutable.
+2. No transformations or business logic.
+3. Exact values of data to quality check are known.
+"""
 
 from airflow import DAG
 from airflow.models.baseoperator import chain
@@ -9,33 +25,20 @@ from airflow.utils.dates import datetime
 from airflow.utils.task_group import TaskGroup
 
 
-SNOWFLAKE_FORESTFIRE_TABLE = 'forestfires'
+SNOWFLAKE_FORESTFIRE_TABLE = "forestfires"
 SNOWFLAKE_CONN_ID = "snowflake_default"
 
 
-with DAG('simple_snowflake',
-         description='Example DAG showcasing loading and data quality checking with Snowflake.',
-         start_date=datetime(2021, 1, 1),
-         schedule_interval=None,
-         template_searchpath="/usr/local/airflow/include/sql/snowflake_examples/",
-         catchup=False) as dag:
-    """
-    ### Simple EL Pipeline with Data Quality Checks Using Snowflake
+with DAG(
+    "simple_snowflake",
+    description="Example DAG showcasing loading and data quality checking with Snowflake.",
+    doc_md=__doc__,
+    start_date=datetime(2021, 1, 1),
+    schedule_interval=None,
+    template_searchpath="/usr/local/airflow/include/sql/snowflake_examples/",
+    catchup=False
+) as dag:
 
-    Before running the DAG, set the following in an Airflow or Environment Variable:
-    - key:
-
-    Ensure a Snowflake Warehouse, Database, Schema, and Role exist for the Snowflake
-    connection provided to the Operator. The names of these data should replace the
-    dummy values at the top of the file.
-
-    A Snowflake Connection is also needed, named `snowflake_default`.
-
-    What makes this a simple data quality case is:
-    1. Absolute ground truth: the local CSV file is considered perfect and immutable.
-    2. No transformations or business logic.
-    3. Exact values of data to quality check are known.
-    """
 
     """
     #### Snowflake table creation
@@ -89,8 +92,8 @@ with DAG('simple_snowflake',
         params={"table_name": SNOWFLAKE_FORESTFIRE_TABLE}
     )
 
-    begin = EmptyOperator(task_id='begin')
-    end = EmptyOperator(task_id='end')
+    begin = EmptyOperator(task_id="begin")
+    end = EmptyOperator(task_id="end")
 
     chain(
         begin,

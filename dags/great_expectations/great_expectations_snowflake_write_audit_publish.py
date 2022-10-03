@@ -1,3 +1,22 @@
+"""
+### Write-Audit-Publish Pattern EL Pipeline with Data Quality Checks Using Snowflake and Great Expectations
+
+Ensure a Snowflake Warehouse, Database, Schema, Role, and S3 Key and Secret
+exist for the Snowflake connection, named `snowflake_default`. Access to S3
+is needed for this example. An 'aws_configs' variable is needed in Variables,
+see the Redshift Examples in the README section for more information.
+
+The write-audit-publish pattern writes data to a staging table, audits the
+data quality through quality checks, then publishes correct data to a
+production table. In this example incorrect data is discarded, and the DAG
+is failed on data quality check failure.
+
+What makes this a simple data quality case is:
+1. Absolute ground truth: the local CSV file is considered perfect and immutable.
+2. No transformations or business logic.
+3. Exact values of data to quality check are known.
+"""
+
 import os
 import json
 
@@ -45,28 +64,12 @@ with DAG(
     "great_expectations.snowflake_write_audit_publish",
     start_date=datetime(2022, 1, 1),
     description="Example DAG showcasing a write-audit-publish data quality pattern with Snowflake and Great Expectations.",
+    doc_md=__doc__,
     schedule_interval=None,
     template_searchpath=f"{base_path}/include/sql/great_expectations_examples/",
     catchup=False,
 ) as dag:
-    """
-    ### Write-Audit-Publish Pattern EL Pipeline with Data Quality Checks Using Snowflake and Great Expectations
 
-    Ensure a Snowflake Warehouse, Database, Schema, Role, and S3 Key and Secret
-    exist for the Snowflake connection, named `snowflake_default`. Access to S3
-    is needed for this example. An 'aws_configs' variable is needed in Variables,
-    see the Redshift Examples in the README section for more information.
-
-    The write-audit-publish pattern writes data to a staging table, audits the
-    data quality through quality checks, then publishes correct data to a
-    production table. In this example incorrect data is discarded, and the DAG
-    is failed on data quality check failure.
-
-    What makes this a simple data quality case is:
-    1. Absolute ground truth: the local CSV file is considered perfect and immutable.
-    2. No transformations or business logic.
-    3. Exact values of data to quality check are known.
-    """
 
     """
     #### Upload task

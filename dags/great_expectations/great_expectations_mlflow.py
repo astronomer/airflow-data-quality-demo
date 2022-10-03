@@ -1,3 +1,13 @@
+"""
+### MLFlow
+Airflow can integrate with tools like MLFlow to streamline the model experimentation process. By using the automation and orchestration of Airflow together with MLflow's core concepts Data Scientists can standardize, share, and iterate over experiments more easily.
+
+
+#### XCOM Backend
+By default, Airflow stores all return values in XCom. However, this can introduce complexity, as users then have to consider the size of data they are returning. Futhermore, since XComs are stored in the Airflow database by default, intermediary data is not easily accessible by external systems.
+By using an external XCom backend, users can easily push and pull all intermediary data generated in their DAG in GCS.
+"""
+
 import os
 import logging
 import mlflow
@@ -24,34 +34,8 @@ from include.great_expectations.configs.mlflow_checkpoint_config import (
 )
 from include.grid_configs import models, params
 
-
-docs = """
-### MLFlow
-Airflow can integrate with tools like MLFlow to streamline the model experimentation process. By using the automation and orchestration of Airflow together with MLflow's core concepts Data Scientists can standardize, share, and iterate over experiments more easily.
-
-
-#### XCOM Backend
-By default, Airflow stores all return values in XCom. However, this can introduce complexity, as users then have to consider the size of data they are returning. Futhermore, since XComs are stored in the Airflow database by default, intermediary data is not easily accessible by external systems.
-By using an external XCom backend, users can easily push and pull all intermediary data generated in their DAG in GCS.
-"""
-
-"""
-mlflow.set_tracking_uri('http://host.docker.internal:5000')
-try:
-    # Creating an experiment
-    mlflow.create_experiment('census_prediction')
-except:
-    pass
-# Setting the environment with the created experiment
-mlflow.set_experiment('census_prediction')
-
-mlflow.sklearn.autolog()
-mlflow.lightgbm.autolog()
-"""
-
-
 @dag(
-    start_date=datetime(2021, 1, 1), schedule_interval=None, catchup=False, doc_md=docs
+    start_date=datetime(2021, 1, 1), schedule_interval=None, catchup=False, doc_md=__doc__
 )
 def mlflow_multimodel_register_example():
     @task

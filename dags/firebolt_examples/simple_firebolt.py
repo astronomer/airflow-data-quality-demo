@@ -15,9 +15,19 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+"""Example Firebolt Data Quality DAG
+
+DAG starts the Firebolt engine specificed, creates sample table, loads sample data into table,
+runs quality checks in CHECKS dictionary, then deletes the table and stops the engine.
+
+Checks work by running a MIN() function over the specific aggregate check, where the aggregate
+check is contained in a CASE statement. The CASE statement checks the result of the condition;
+if true, the CASE statement returns 1, else 0. Then MIN() will return 0 if any row returns a
+false result, and true otherwise.
+
+Note: the Firebolt operator currently does not support templated SQL queries.
 """
-Example use of Firebolt operators.
-"""
+
 from datetime import datetime
 
 from airflow import DAG
@@ -42,6 +52,7 @@ with DAG(
     "simple_firebolt",
     schedule_interval=None,
     start_date=datetime(2021, 1, 1),
+    doc_md=__doc__,
     default_args={
         "conn_id": FIREBOLT_CONN_ID,
         "firebolt_conn_id": FIREBOLT_CONN_ID,
@@ -51,18 +62,6 @@ with DAG(
     template_searchpath="/usr/local/airflow/include/sql/firebolt_examples/",
     catchup=False,
 ) as dag:
-    """Example Firebolt Data Quality DAG
-
-    DAG starts the Firebolt engine specificed, creates sample table, loads sample data into table,
-    runs quality checks in CHECKS dictionary, then deletes the table and stops the engine.
-
-    Checks work by running a MIN() function over the specific aggregate check, where the aggregate
-    check is contained in a CASE statement. The CASE statement checks the result of the condition;
-    if true, the CASE statement returns 1, else 0. Then MIN() will return 0 if any row returns a
-    false result, and true otherwise.
-
-    Note: the Firebolt operator currently does not support templated SQL queries.
-    """
 
     start_engine = FireboltStartEngineOperator(
         task_id="start_engine"

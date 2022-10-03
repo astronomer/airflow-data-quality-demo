@@ -1,3 +1,16 @@
+"""
+### SQL Check Operators Data Quality ETL Example
+
+Before running the DAG, set the following in an Airflow or Environment Variable:
+- key: aws_configs
+- value: { "s3_bucket": [bucket_name], "s3_key_prefix": [key_prefix], "redshift_table": [table_name]}
+Fully replacing [bucket_name], [key_prefix], and [table_name].
+
+See the README for information on how to set up your Redshift connection.
+This DAG can be used with other databases as long as the Redshift (and possibly
+transfer operators) are changed.
+"""
+
 from airflow import DAG
 from airflow.models.baseoperator import chain
 from airflow.operators.dummy_operator import DummyOperator
@@ -20,25 +33,17 @@ import pandas as pd
 DATES = ["2019-01", "2019-02"]
 TASK_DICT = {}
 
-with DAG("sql_data_quality_redshift_etl",
-         start_date=datetime(2021, 7, 7),
-         description="A sample Airflow DAG to perform data quality checks using SQL Operators.",
-         schedule_interval=None,
-         default_args={"conn_id": "redshift_default"},
-         template_searchpath="/usr/local/airflow/include/sql/sql_examples/",
-         catchup=False) as dag:
-    """
-    ### SQL Check Operators Data Quality ETL Example
+with DAG(
+    "sql_data_quality_redshift_etl",
+    start_date=datetime(2021, 7, 7),
+    description="A sample Airflow DAG to perform data quality checks using SQL Operators.",
+    doc_md=__doc__,
+    schedule_interval=None,
+    default_args={"conn_id": "redshift_default"},
+    template_searchpath="/usr/local/airflow/include/sql/sql_examples/",
+    catchup=False
+) as dag:
 
-    Before running the DAG, set the following in an Airflow or Environment Variable:
-    - key: aws_configs
-    - value: { "s3_bucket": [bucket_name], "s3_key_prefix": [key_prefix], "redshift_table": [table_name]}
-    Fully replacing [bucket_name], [key_prefix], and [table_name].
-
-    See the README for information on how to set up your Redshift connection.
-    This DAG can be used with other databases as long as the Redshift (and possibly
-    transfer operators) are changed.
-    """
 
     """
     #### Dummy operators

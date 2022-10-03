@@ -1,3 +1,20 @@
+"""
+### Simple EL Pipeline with Data Quality Checks Using BigQuery and Great Expectations
+
+Before running the DAG, set the following in an Airflow or Environment Variable:
+- key: gcp_project_id
+    value: [gcp_project_id]
+Fully replacing [gcp_project_id] with the actual ID.
+
+Ensure you have a connection to GCP, using a role with access to BigQuery
+and the ability to create, modify, and delete datasets and tables.
+
+What makes this a simple data quality case is:
+1. Absolute ground truth: the local CSV file is considered perfect and immutable.
+2. No transformations or business logic.
+3. Exact values of data to quality check are known.
+"""
+
 import os
 
 from pathlib import Path
@@ -43,26 +60,12 @@ gcp_data_dest = "data/yellow_tripdata_sample_2019-01.csv"
 with DAG(
     "great_expectations.bigquery",
     description="Example DAG showcasing loading and data quality checking with BigQuery and Great Expectations.",
+    doc_md=__doc__,
     schedule_interval=None,
     start_date=datetime(2021, 1, 1),
     catchup=False,
 ) as dag:
-    """
-    ### Simple EL Pipeline with Data Quality Checks Using BigQuery and Great Expectations
 
-    Before running the DAG, set the following in an Airflow or Environment Variable:
-    - key: gcp_project_id
-      value: [gcp_project_id]
-    Fully replacing [gcp_project_id] with the actual ID.
-
-    Ensure you have a connection to GCP, using a role with access to BigQuery
-    and the ability to create, modify, and delete datasets and tables.
-
-    What makes this a simple data quality case is:
-    1. Absolute ground truth: the local CSV file is considered perfect and immutable.
-    2. No transformations or business logic.
-    3. Exact values of data to quality check are known.
-    """
 
     """
     #### BigQuery dataset creation

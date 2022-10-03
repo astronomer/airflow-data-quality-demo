@@ -1,7 +1,22 @@
+"""
+### Simple EL Pipeline with Data Quality Checks Using Snowflake and Great Expectations
+
+Ensure a Snowflake Warehouse, Database, Schema, Role, and S3 Key and Secret
+exist for the Snowflake connection, named `snowflake_default`. Access to S3
+is needed for this example. An 'aws_configs' variable is needed in Variables,
+see the Redshift Examples in the README section for more information.
+
+What makes this a simple data quality case is:
+1. Absolute ground truth: the local CSV file is considered perfect and immutable.
+2. No transformations or business logic.
+3. Exact values of data to quality check are known.
+"""
+
 import os
 
 from pathlib import Path
 from datetime import datetime
+from pydoc import doc
 
 from airflow import DAG
 from airflow.models.baseoperator import chain
@@ -34,23 +49,11 @@ with DAG(
     "great_expectations.snowflake",
     start_date=datetime(2021, 1, 1),
     description="Example DAG showcasing loading and data quality checking with Snowflake and Great Expectations.",
+    doc_md=__doc__,
     schedule_interval=None,
     template_searchpath=f"{base_path}/include/sql/great_expectations_examples/",
     catchup=False,
 ) as dag:
-    """
-    ### Simple EL Pipeline with Data Quality Checks Using Snowflake and Great Expectations
-
-    Ensure a Snowflake Warehouse, Database, Schema, Role, and S3 Key and Secret
-    exist for the Snowflake connection, named `snowflake_default`. Access to S3
-    is needed for this example. An 'aws_configs' variable is needed in Variables,
-    see the Redshift Examples in the README section for more information.
-
-    What makes this a simple data quality case is:
-    1. Absolute ground truth: the local CSV file is considered perfect and immutable.
-    2. No transformations or business logic.
-    3. Exact values of data to quality check are known.
-    """
 
     """
     #### Upload task

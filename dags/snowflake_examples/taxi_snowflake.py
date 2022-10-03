@@ -1,3 +1,16 @@
+"""
+### SQL Check Operators Data Quality Example with Snowflake
+
+Ensure a Snowflake Warehouse, Database, Schema, Role, and S3 Key and Secret
+exist for the Snowflake connection, named `snowflake_default`. Access to S3
+is needed for this example. A staging table may need to be created in
+Snowflake manually.
+
+Note: The data files for this example do **not** include an `upload_date`
+column. This column is needed for the interval check, and is added as a
+Task.
+"""
+
 import pandas as pd
 
 from airflow import DAG
@@ -27,22 +40,11 @@ with DAG(
     "taxi_snowflake",
     start_date=datetime(2021, 7, 7),
     description="A sample Airflow DAG to perform data quality checks using SQL Operators.",
+    doc_md=__doc__,
     schedule_interval=None,
     template_searchpath="/usr/local/airflow/include/sql/snowflake_examples/",
     catchup=False,
 ) as dag:
-    """
-    ### SQL Check Operators Data Quality Example with Snowflake
-
-    Ensure a Snowflake Warehouse, Database, Schema, Role, and S3 Key and Secret
-    exist for the Snowflake connection, named `snowflake_default`. Access to S3
-    is needed for this example. A staging table may need to be created in
-    Snowflake manually.
-
-    Note: The data files for this example do **not** include an `upload_date`
-    column. This column is needed for the interval check, and is added as a
-    Task.
-    """
 
     begin = EmptyOperator(task_id="begin")
     end = EmptyOperator(task_id="end")
