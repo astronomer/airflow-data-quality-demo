@@ -58,7 +58,7 @@ with DAG('simple_snowflake',
         params={"table_name": SNOWFLAKE_FORESTFIRE_TABLE}
     )
 
-    with TaskGroup(group_id="quality_checks", default_args={"conn_id": SNOWFLAKE_CONN_ID) as quality_check_group:
+    with TaskGroup(group_id="quality_checks", default_args={"conn_id": SNOWFLAKE_CONN_ID}) as quality_check_group:
         """
         #### Column-level data quality check
         Run data quality checks on columns of the audit table
