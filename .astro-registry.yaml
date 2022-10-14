@@ -1,0 +1,25 @@
+# These categories will be applied to all DAGs in the repo.
+categories:
+  - ETL/ELT
+  - Data Quality
+  - Big Data and Analytics
+  - Databases
+# List of DAGs that should be published to the Astronomer Registry.
+dags:
+  - path: dags/bigquery_examples/simple_bigquery.py
+  - path: dags/dbt_examples/copy_store_failures_bigquery.py
+  - path: dags/dbt_examples/copy_store_failures_redshift.py
+  - path: dags/dbt_examples/copy_store_failures_snowflake.py
+  - path: dags/firebolt_examples/simple_firebolt.py
+  - path: dags/great_expectations/v2/simple_great_expectations_bigquery_el_v2.py
+  - path: dags/great_expectations/v2/simple_great_expectations_example_v2.py
+  - path: dags/redshift_examples/simple_redshift_1.py
+  - path: dags/redshift_examples/simple_redshift_2.py
+  - path: dags/redshift_examples/simple_redshift_3.py
+  - path: dags/snowflake_examples/complex_snowflake_transform.py
+  - path: dags/snowflake_examples/simple_snowflake.py
+  - path: dags/snowflake_examples/snowflake_dynamic_write_audit_publish.py
+  - path: dags/snowflake_examples/snowflake_write_audit_publish.py
+  - path: dags/snowflake_examples/taxi_snowflake.py
+  - path: dags/sql_examples/sql_check_redshift_etl.py
+  - path: dags/sql_examples/sql_check.py
