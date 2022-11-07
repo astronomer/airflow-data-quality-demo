@@ -10,7 +10,7 @@ from great_expectations.data_context.types.base import (
 
 base_path = Path(__file__).parents[3]
 data_dir = os.path.join(base_path, "include", "data")
-ge_root_dir = os.path.join(base_path, "include", "great_expectations")
+ge_root_dir = os.path.join(base_path, "include", "great_expectations_project")
 connection_string = ""
 
 with open(
@@ -22,29 +22,7 @@ with open(
 snowflake_data_context_config = DataContextConfig(
     **{
         "config_version": 3.0,
-        "datasources": {
-            "my_snowflake_db": {
-                "module_name": "great_expectations.datasource",
-                "data_connectors": {
-                    "default_inferred_data_connector_name": {
-                        "module_name": "great_expectations.datasource.data_connector",
-                        "class_name": "InferredAssetSqlDataConnector",
-                        "include_schema_name": True,
-                    },
-                    "default_runtime_data_connector_name": {
-                        "batch_identifiers": ["default_identifier_name"],
-                        "module_name": "great_expectations.datasource.data_connector",
-                        "class_name": "RuntimeDataConnector",
-                    },
-                },
-                "execution_engine": {
-                    "module_name": "great_expectations.execution_engine",
-                    "class_name": "SqlAlchemyExecutionEngine",
-                    "connection_string": connection_string
-                },
-                "class_name": "Datasource",
-            }
-        },
+        "datasources": {},
         "config_variables_file_path": os.path.join(
             ge_root_dir, "uncommitted", "config_variables.yml"
         ),

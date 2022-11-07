@@ -13,6 +13,7 @@ What makes this a simple data quality case is:
 """
 
 import os
+import pandas as pd
 
 from pathlib import Path
 from datetime import datetime
@@ -21,16 +22,12 @@ from pydoc import doc
 from airflow import DAG
 from airflow.models.baseoperator import chain
 from airflow.operators.dummy_operator import DummyOperator
-from airflow.providers.amazon.aws.transfers.local_to_s3 import (
-    LocalFilesystemToS3Operator,
-)
 from airflow.providers.snowflake.operators.snowflake import SnowflakeOperator
-from airflow.providers.snowflake.transfers.s3_to_snowflake import S3ToSnowflakeOperator
 from great_expectations_provider.operators.great_expectations import (
     GreatExpectationsOperator,
 )
 from include.great_expectations.configs.snowflake_configs import (
-    snowflake_checkpoint_config,
+    snowflake_checkpoint_config, snowflake_data_context_config
 )
 
 # This table variable is a placeholder, in a live environment, it is better
@@ -43,7 +40,9 @@ data_file = os.path.join(
     "sample_data/yellow_trip_data/yellow_tripdata_sample_2019-01.csv",
 )
 ge_root_dir = os.path.join(base_path, "include", "great_expectations")
-checkpoint_config = snowflake_checkpoint_config
+#checkpoint_config = snowflake_checkpoint_config
+
+SNOWFLAKE_CONN_ID = "snowflake_default"
 
 with DAG(
     "great_expectations.snowflake",
@@ -51,67 +50,39 @@ with DAG(
     description="Example DAG showcasing loading and data quality checking with Snowflake and Great Expectations.",
     doc_md=__doc__,
     schedule_interval=None,
-    template_searchpath=f"{base_path}/include/sql/great_expectations_examples/",
+    template_searchpath="/usr/local/airflow/include/sql/snowflake_examples/",
     catchup=False,
 ) as dag:
 
     """
-    #### Upload task
-    Simply loads the file to a specified location in S3.
-    """
-    upload_to_s3 = LocalFilesystemToS3Operator(
-        task_id="upload_to_s3",
-        filename=data_file,
-        dest_key="{{ var.json.aws_configs.s3_key_prefix }}/tripdata/yellow_tripdata_sample_2019-01.csv",
-        dest_bucket="{{ var.json.aws_configs.s3_bucket }}",
-        aws_conn_id="aws_default",
-        replace=True,
-    )
-
-    """
     #### Snowflake table creation
-    Create the table to store sample data.
+    Create the table to store sample forest fire data.
     """
-    create_snowflake_table = SnowflakeOperator(
-        task_id="create_snowflake_table",
-        sql="{% include 'create_yellow_tripdata_snowflake_table.sql' %}",
-        params={
-            "table_name": table,
-        },
+    create_table = SnowflakeOperator(
+        task_id="create_table",
+        sql="{% include 'create_forestfire_table.sql' %}",
+        params={"table_name": table}
     )
 
     """
-    #### Snowflake stage creation
-    Create the stage to load data into from S3
+    #### Insert data
+    Insert data into the Snowflake table using an existing SQL query (stored in
+    the include/sql/snowflake_examples/ directory).
     """
-    create_snowflake_stage = SnowflakeOperator(
-        task_id="create_snowflake_stage",
-        sql="{% include 'create_snowflake_yellow_tripdata_stage.sql' %}",
-        params={"stage_name": f"{table}_STAGE"},
+    load_data = SnowflakeOperator(
+        task_id="insert_query",
+        sql="{% include 'load_snowflake_forestfire_data.sql' %}",
+        params={"table_name": table}
     )
 
     """
     #### Delete table
     Clean up the table created for the example.
     """
-    delete_snowflake_table = SnowflakeOperator(
-        task_id="delete_snowflake_table",
-        sql="{% include 'delete_yellow_tripdata_table.sql' %}",
-        params={"table_name": table},
-        trigger_rule="all_done",
-    )
-
-    """
-    #### Snowflake load task
-    Loads the S3 data from the previous load to a Redshift table (specified
-    in the Airflow Variables backend).
-    """
-    load_to_snowflake = S3ToSnowflakeOperator(
-        task_id="load_to_snowflake",
-        prefix="test/tripdata",
-        stage=f"{table}_STAGE",
-        table=table,
-        file_format="(type = 'CSV', skip_header = 1, time_format = 'YYYY-MM-DD HH24:MI:SS')",
+    delete_table = SnowflakeOperator(
+        task_id="delete_table",
+        sql="{% include 'delete_snowflake_table.sql' %}",
+        params={"table_name": table}
     )
 
     """
@@ -120,8 +91,21 @@ with DAG(
     """
     ge_snowflake_validation = GreatExpectationsOperator(
         task_id="ge_snowflake_validation",
-        data_context_root_dir=ge_root_dir,
-        checkpoint_config=checkpoint_config,
+        data_context_config=snowflake_data_context_config,
+        conn_id=SNOWFLAKE_CONN_ID,
+        expectation_suite_name="taxi.demo",
+        data_asset_name=table,
+        fail_task_on_validation_failure=False,
+    )
+
+    ge_snowflake_query_validation = GreatExpectationsOperator(
+        task_id="ge_snowflake_query_validation",
+        data_context_config=snowflake_data_context_config,
+        conn_id=SNOWFLAKE_CONN_ID,
+        query_to_validate="SELECT *",
+        expectation_suite_name="taxi.demo",
+        data_asset_name=table,
+        fail_task_on_validation_failure=False
     )
 
     begin = DummyOperator(task_id="begin")
@@ -129,11 +113,12 @@ with DAG(
 
     chain(
         begin,
-        upload_to_s3,
-        create_snowflake_table,
-        create_snowflake_stage,
-        load_to_snowflake,
-        ge_snowflake_validation,
-        delete_snowflake_table,
+        create_table,
+        load_data,
+        [
+            ge_snowflake_validation,
+            ge_snowflake_query_validation,
+        ],
+        delete_table,
         end,
     )
