@@ -1,7 +1,7 @@
-apache-airflow-providers-amazon>=5.0.0
+apache-airflow-providers-amazon==6.0.0
 apache-airflow-providers-google==6.3.0
-apache-airflow-providers-postgres>=5.2.0
-apache-airflow-providers-snowflake>=3.2.0
+apache-airflow-providers-postgres==5.2.2
+apache-airflow-providers-snowflake==3.3.0
 apache-airflow-providers-slack==5.1.0
 apache-airflow-providers-common-sql==1.2.0
 airflow-provider-great-expectations==0.2.0
