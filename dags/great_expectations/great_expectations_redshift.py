@@ -1,6 +1,8 @@
 """
 ### Simple EL Pipeline with Data Quality Checks Using Redshift and Great Expectations
 
+Use Great Expectations to check data quality in Redshift.
+
 Before running the DAG, set the following in an Airflow or Environment Variable:
 - key: aws_configs
 - value: { "s3_bucket": [bucket_name], "s3_key_prefix": [key_prefix], "redshift_table": [table_name]}

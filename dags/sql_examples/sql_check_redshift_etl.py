@@ -1,6 +1,8 @@
 """
 ### SQL Check Operators Data Quality ETL Example
 
+Use the SQLCheckOperators to perform data quality checks in ETL use cases.
+
 Before running the DAG, set the following in an Airflow or Environment Variable:
 - key: aws_configs
 - value: { "s3_bucket": [bucket_name], "s3_key_prefix": [key_prefix], "redshift_table": [table_name]}
@@ -36,7 +38,6 @@ TASK_DICT = {}
 with DAG(
     "sql_data_quality_redshift_etl",
     start_date=datetime(2021, 7, 7),
-    description="A sample Airflow DAG to perform data quality checks using SQL Operators.",
     doc_md=__doc__,
     schedule_interval=None,
     default_args={"conn_id": "redshift_default"},

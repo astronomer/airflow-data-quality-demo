@@ -1,9 +1,13 @@
 """
-### MLFlow
-Airflow can integrate with tools like MLFlow to streamline the model experimentation process. By using the automation and orchestration of Airflow together with MLflow's core concepts Data Scientists can standardize, share, and iterate over experiments more easily.
+### Great Expectations and MLFlow
+
+Use Airflow and Great Expectations to check model results before serving it with MLFlow.
+
+By implementing a data quality framework like Great Expectations, users can safe compute
+and ensure higher data quality when dealing with ML centric workloads.
 
 
-#### XCOM Backend
+XCOM Backend:
 By default, Airflow stores all return values in XCom. However, this can introduce complexity, as users then have to consider the size of data they are returning. Futhermore, since XComs are stored in the Airflow database by default, intermediary data is not easily accessible by external systems.
 By using an external XCom backend, users can easily push and pull all intermediary data generated in their DAG in GCS.
 """

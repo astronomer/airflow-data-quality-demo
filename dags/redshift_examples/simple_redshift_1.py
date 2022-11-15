@@ -1,7 +1,10 @@
 """
-### Simple EL Pipeline with Data Integrity Check 1
-This is a very simple DAG showing a minimal EL data pipeline with a data
-integrity check. A single file is uploaded to S3, then its ETag is verified
+### Simple EL Pipeline with Data Integrity Check 
+
+A simple DAG showing a minimal EL data pipeline with a data
+integrity check. using MD5 hashes. 
+
+A single file is uploaded to S3, then its ETag is verified
 against the MD5 hash of the local file. The two should match, which will
 allow the DAG to flow along the "happy path". To see the "sad path", change
 `CSV_FILE_PATH` to `CSV_CORRUPT_FILE_PATH` in the `validate_etag` task.

@@ -1,10 +1,13 @@
 """
-### Simple EL Pipeline with Data Integrity and Quality Checks 3
+### Data Integrity Checks with Multiple Files
+
+
 This is the third in a series of DAGs showing an EL pipeline with data integrity
 and data quality checking. A single file is uploaded to S3, then its ETag is
 verified against the MD5 hash of the local file. The two should match, which
-will allow the DAG to continue to the next task. A second data load from S3
-to Redshift is triggered, which is followed by another data integrity check.
+will allow the DAG to continue to the next task. 
+
+A second data load from S3 to Redshift is triggered, which is followed by another data integrity check.
 If the check fails, an Airflow Exception is raised. Otherwise, a final data
 quality check is performed on the Redshift table per row for a subset of rows,
 immitating a row-based data quality spot check where the specific ground truth
@@ -20,7 +23,7 @@ What makes this a simple data quality case is:
 2. No transformations or business logic.
 3. Exact values of data to quality check are known.
 
-This demo solves the issue simple_el_2 left open: quality checking the data
+This demo solves the issue Extract and Load Pipeline with Data Integrity Check left open: quality checking the data
 in the uploaded file. This DAG is a good starting point for a data integrity
 and data quality check.
 """

@@ -1,10 +1,11 @@
 """
-### Simple EL Pipeline with Data Integrity Check 2
-This is the second in a series of DAGs showing an EL pipeline with data integrity
-checking. A single file is uploaded to S3, then its ETag is verified
+### Extract and Load Pipeline with Data Integrity Check
+
+ A single file is uploaded to S3, then its ETag is verified
 against the MD5 hash of the local file. The two should match, which will
-allow the DAG to flow along the "happy path". To see the "sad path", change
-`CSV_FILE_PATH` to `CSV_CORRUPT_FILE_PATH` in the `validate_etag` task. If the
+allow the DAG to flow along the "happy path". 
+
+To see the "sad path", change`CSV_FILE_PATH` to `CSV_CORRUPT_FILE_PATH` in the `validate_etag` task. If the
 "happy path" is continued, a second data load from S3 to Redshift is triggered,
 which is followed by another data integrity check. A similar "happy/sad path"
 branch ends the DAG.
@@ -19,7 +20,7 @@ What makes this a simple data quality case is:
 2. No transformations or business logic.
 3. Single metric to validate (whether the uploads were successful).
 
-This demo solves the issue the simple_el_1 DAG left open: validating an
+This demo solves the issue the Simple EL Pipeline with Data Integrity Check DAG left open: validating an
 upload to Redshift. However, it only validates that the data matches the
 source file; it does not guarantee that the source file's data is actually
 valid with respect to expectations about that data.

@@ -1,5 +1,7 @@
 """
-### Simple ELT Pipeline with Data Quality Checks Using Snowflake
+### ELT Pipeline with Data Quality Checks Using Snowflake
+
+Example DAG showcasing loading and data quality checking with Snowflake with a Write, Audit, Publish pattern.
 """
 
 import json
@@ -28,7 +30,6 @@ table_schema_path = (
 
 with DAG(
     "snowflake_write_audit_publish",
-    description="Example DAG showcasing loading and data quality checking with Snowflake.",
     doc_md=__doc__,
     start_date=datetime(2021, 1, 1),
     schedule_interval=None,

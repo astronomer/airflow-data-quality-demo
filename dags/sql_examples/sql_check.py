@@ -1,6 +1,8 @@
 """
 ### SQL Check Operators Data Quality Example
 
+"A sample Airflow DAG to perform data quality checks using SQL Operators.
+
 Before running the DAG, ensure you have an active and reachable SQL database
 running, with a connection to that database in an Airflow Connection, and
 the data loaded. This DAG **will not** run successfully as-is. For an
@@ -33,7 +35,6 @@ DATES = ["2019-01", "2019-02"]
 with DAG(
     "sql_data_quality",
     start_date=datetime(2021, 7, 7),
-    description="A sample Airflow DAG to perform data quality checks using SQL Operators.",
     doc_md=__doc__,
     schedule_interval=None,
     default_args={"conn_id": "postgres_default"},

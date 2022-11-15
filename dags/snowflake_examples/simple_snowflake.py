@@ -1,8 +1,9 @@
 """
 ### Simple EL Pipeline with Data Quality Checks Using Snowflake
 
-Before running the DAG, set the following in an Airflow or Environment Variable:
-- key:
+Runs a data quality check, in SQL, on the forest fires dataset
+
+Note that this DAG will clean up after itself and delete all data it uploads.
 
 Ensure a Snowflake Warehouse, Database, Schema, and Role exist for the Snowflake
 connection provided to the Operator. The names of these data should replace the
