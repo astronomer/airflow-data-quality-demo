@@ -1,7 +1,7 @@
 """
 ### Snowflake ELT Pipeline with Multiple Datasets and Data Qality Checks
 
-Run data quality checks on multiple Snowflake tables.
+Run data quality checks, in SQL, on multiple Snowflake tables.
 
 This DAG uses the forestfires public dataset on ForestFires to run data quality checks on multiple tables in Snowflake.
 In the event of a failure, a Slack notification will be fired off. In this example, data quality checks are 
