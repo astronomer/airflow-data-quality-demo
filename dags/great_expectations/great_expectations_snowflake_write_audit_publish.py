@@ -1,6 +1,8 @@
 """
 ### Write-Audit-Publish Pattern EL Pipeline with Data Quality Checks Using Snowflake and Great Expectations
 
+Use the Write-Audit-Publish pattern with Great Expectaitons and Snowflake.
+
 Ensure a Snowflake Warehouse, Database, Schema, Role, and S3 Key and Secret
 exist for the Snowflake connection, named `snowflake_default`. Access to S3
 is needed for this example. An 'aws_configs' variable is needed in Variables,

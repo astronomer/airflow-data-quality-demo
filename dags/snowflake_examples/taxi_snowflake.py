@@ -1,6 +1,8 @@
 """
 ### SQL Check Operators Data Quality Example with Snowflake
 
+Uses the SQLCheck operators to perform data quality checks on public taxi data.
+
 Ensure a Snowflake Warehouse, Database, Schema, Role, and S3 Key and Secret
 exist for the Snowflake connection, named `snowflake_default`. Access to S3
 is needed for this example. A staging table may need to be created in

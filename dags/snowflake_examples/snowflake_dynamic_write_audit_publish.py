@@ -1,5 +1,12 @@
 """
-### Simple ELT Pipeline with Data Quality Checks Using Snowflake and Dynamic Task Mapping
+### Data Quality Checks Using Snowflake and Dynamic Task Mapping. 
+
+Map over a set of columns and perform data quality checks.
+
+This DAG shows how to use Airflow's dynamic task mapping to create tasks based off of a supplied list of columns to perform a data quality check.
+All DQ checks in this DAg are performed in SQL and are expressed in a task group.
+
+Note this DAG will clean up after itself once it's done running.
 """
 
 import json
@@ -28,7 +35,6 @@ table_schema_path = (
 
 with DAG(
     "snowflake_dynamic_write_audit_publish",
-    description="Example DAG showcasing loading and data quality checking with Snowflake and dynamic task mapping.",
     doc_md=__doc__,
     start_date=datetime(2021, 1, 1),
     schedule_interval=None,
