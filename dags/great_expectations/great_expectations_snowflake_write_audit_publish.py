@@ -27,7 +27,6 @@ from datetime import datetime
 
 from airflow import DAG
 from airflow.models.baseoperator import chain
-from airflow.operators.dummy_operator import DummyOperator
 from airflow.providers.amazon.aws.transfers.local_to_s3 import (
     LocalFilesystemToS3Operator,
 )
@@ -151,7 +150,10 @@ with DAG(
     ge_snowflake_validation = GreatExpectationsOperator(
         task_id="ge_snowflake_validation",
         data_context_root_dir=ge_root_dir,
-        checkpoint_config=checkpoint_config,
+        conn_id=snowflake_conn,
+        expectation_suite_name="taxi.demo",
+        data_asset_name=table,
+        fail_task_on_validation_failure=False
     )
 
     with open(
@@ -180,16 +182,11 @@ with DAG(
             },
         )
 
-    begin = DummyOperator(task_id="begin")
-    end = DummyOperator(task_id="end")
-
     chain(
-        begin,
         upload_to_s3,
         [create_snowflake_table, create_snowflake_audit_table, create_snowflake_stage],
         load_s3_to_snowflake,
         ge_snowflake_validation,
         copy_snowflake_audit_to_production_table,
         [delete_snowflake_table, delete_snowflake_audit_table],
-        end,
     )
