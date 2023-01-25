@@ -16,30 +16,20 @@ What makes this a simple data quality case is:
 """
 
 import os
-
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
 
 from airflow import DAG
 from airflow.models.baseoperator import chain
-from airflow.operators.dummy_operator import DummyOperator
 from airflow.providers.google.cloud.operators.bigquery import (
-    BigQueryCreateEmptyDatasetOperator,
-    BigQueryDeleteDatasetOperator,
-    BigQueryCreateEmptyTableOperator,
-)
-from airflow.providers.google.cloud.transfers.local_to_gcs import (
-    LocalFilesystemToGCSOperator,
-)
-from airflow.providers.google.cloud.transfers.gcs_to_bigquery import (
-    GCSToBigQueryOperator,
-)
-from great_expectations_provider.operators.great_expectations import (
-    GreatExpectationsOperator,
-)
-from include.great_expectations.configs.bigquery_configs import (
-    bigquery_checkpoint_config,
-)
+    BigQueryCreateEmptyDatasetOperator, BigQueryCreateEmptyTableOperator,
+    BigQueryDeleteDatasetOperator)
+from airflow.providers.google.cloud.transfers.gcs_to_bigquery import \
+    GCSToBigQueryOperator
+from airflow.providers.google.cloud.transfers.local_to_gcs import \
+    LocalFilesystemToGCSOperator
+from great_expectations_provider.operators.great_expectations import \
+    GreatExpectationsOperator
 
 base_path = Path(__file__).parents[2]
 data_file = os.path.join(
@@ -48,7 +38,6 @@ data_file = os.path.join(
     "sample_data/yellow_trip_data/yellow_tripdata_sample_2019-01.csv",
 )
 ge_root_dir = os.path.join(base_path, "include", "great_expectations")
-checkpoint_config = bigquery_checkpoint_config
 
 # In a production DAG, the global variables below should be stored as Airflow
 # or Environment variables.
@@ -65,7 +54,6 @@ with DAG(
     start_date=datetime(2021, 1, 1),
     catchup=False,
 ) as dag:
-
 
     """
     #### BigQuery dataset creation
@@ -159,7 +147,10 @@ with DAG(
     ge_bigquery_validation = GreatExpectationsOperator(
         task_id="ge_bigquery_validation",
         data_context_root_dir=ge_root_dir,
-        checkpoint_config=checkpoint_config,
+        conn_id="bigquery_default",
+        expectation_suite_name="taxi.demo",
+        data_asset_name=bq_table,
+        fail_task_on_validation_failure=False,
     )
 
     """
@@ -173,16 +164,11 @@ with DAG(
         delete_contents=True,
     )
 
-    begin = DummyOperator(task_id="begin")
-    end = DummyOperator(task_id="end")
-
     chain(
-        begin,
         create_dataset,
         create_temp_table,
         upload_taxi_data,
         transfer_taxi_data,
         ge_bigquery_validation,
         delete_dataset,
-        end,
     )

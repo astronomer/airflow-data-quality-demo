@@ -19,28 +19,25 @@ What makes this a simple data quality case is:
 3. Exact values of data to quality check are known.
 """
 
-import os
 import json
-
-from pathlib import Path
+import os
 from datetime import datetime
+from pathlib import Path
 
 from airflow import DAG
 from airflow.models.baseoperator import chain
-from airflow.operators.dummy_operator import DummyOperator
-from airflow.providers.amazon.aws.transfers.local_to_s3 import (
-    LocalFilesystemToS3Operator,
-)
+from airflow.providers.amazon.aws.transfers.local_to_s3 import \
+    LocalFilesystemToS3Operator
 from airflow.providers.snowflake.operators.snowflake import SnowflakeOperator
-from airflow.providers.snowflake.transfers.s3_to_snowflake import S3ToSnowflakeOperator
-from great_expectations_provider.operators.great_expectations import (
-    GreatExpectationsOperator,
-)
-from include.great_expectations.configs.snowflake_configs import (
-    snowflake_audit_checkpoint_config,
-)
-from include.libs.schema_reg.base_schema_transforms import snowflake_load_column_string
+from airflow.providers.snowflake.transfers.s3_to_snowflake import \
+    S3ToSnowflakeOperator
+from great_expectations_provider.operators.great_expectations import \
+    GreatExpectationsOperator
 
+from include.great_expectations.configs.snowflake_configs import \
+    snowflake_audit_checkpoint_config
+from include.libs.schema_reg.base_schema_transforms import \
+    snowflake_load_column_string
 
 # These variables are a placeholder. In a live environment, it is better
 # to pull the info from a Variable.
@@ -71,7 +68,6 @@ with DAG(
     template_searchpath=f"{base_path}/include/sql/great_expectations_examples/",
     catchup=False,
 ) as dag:
-
 
     """
     #### Upload task
@@ -151,7 +147,10 @@ with DAG(
     ge_snowflake_validation = GreatExpectationsOperator(
         task_id="ge_snowflake_validation",
         data_context_root_dir=ge_root_dir,
-        checkpoint_config=checkpoint_config,
+        conn_id=snowflake_conn,
+        expectation_suite_name="taxi.demo",
+        data_asset_name=table,
+        fail_task_on_validation_failure=False,
     )
 
     with open(
@@ -180,16 +179,11 @@ with DAG(
             },
         )
 
-    begin = DummyOperator(task_id="begin")
-    end = DummyOperator(task_id="end")
-
     chain(
-        begin,
         upload_to_s3,
         [create_snowflake_table, create_snowflake_audit_table, create_snowflake_stage],
         load_s3_to_snowflake,
         ge_snowflake_validation,
         copy_snowflake_audit_to_production_table,
         [delete_snowflake_table, delete_snowflake_audit_table],
-        end,
     )

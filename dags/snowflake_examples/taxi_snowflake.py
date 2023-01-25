@@ -14,22 +14,22 @@ Task.
 """
 
 import pandas as pd
-
 from airflow import DAG
 from airflow.decorators import task
 from airflow.models.baseoperator import chain
 from airflow.operators.empty import EmptyOperator
+from airflow.providers.amazon.aws.transfers.local_to_s3 import \
+    LocalFilesystemToS3Operator
+from airflow.providers.snowflake.operators.snowflake import SnowflakeOperator
+from airflow.providers.snowflake.transfers.s3_to_snowflake import \
+    S3ToSnowflakeOperator
 from airflow.utils.dates import datetime
 from airflow.utils.task_group import TaskGroup
-from airflow.providers.amazon.aws.transfers.local_to_s3 import LocalFilesystemToS3Operator
-from airflow.providers.snowflake.operators.snowflake import SnowflakeOperator
-from airflow.providers.snowflake.transfers.s3_to_snowflake import S3ToSnowflakeOperator
-from plugins.snowflake_check_operators import (
-    SnowflakeCheckOperator,
-    SnowflakeValueCheckOperator,
-    SnowflakeIntervalCheckOperator,
-    SnowflakeThresholdCheckOperator,
-)
+
+from plugins.snowflake_check_operators import (SnowflakeCheckOperator,
+                                               SnowflakeIntervalCheckOperator,
+                                               SnowflakeThresholdCheckOperator,
+                                               SnowflakeValueCheckOperator)
 
 # This table variable is a placeholder, in a live environment, it is better
 # to pull the table info from a Variable in a template
@@ -68,14 +68,10 @@ with DAG(
             file_path,
             header=0,
             parse_dates=["pickup_datetime"],
-            infer_datetime_format=True
+            infer_datetime_format=True,
         )
         trip_dict["upload_date"] = upload_date
-        trip_dict.to_csv(
-            file_path,
-            header=True,
-            index=False
-        )
+        trip_dict.to_csv(file_path, header=True, index=False)
 
     @task
     def delete_upload_date(file_path):
@@ -89,14 +85,10 @@ with DAG(
             file_path,
             header=0,
             parse_dates=["pickup_datetime"],
-            infer_datetime_format=True
+            infer_datetime_format=True,
         )
         trip_dict.drop(columns="upload_date", inplace=True)
-        trip_dict.to_csv(
-            file_path,
-            header=True,
-            index=False
-        )
+        trip_dict.to_csv(file_path, header=True, index=False)
 
     """
     #### Snowflake table creation
@@ -105,7 +97,7 @@ with DAG(
     create_snowflake_table = SnowflakeOperator(
         task_id="create_snowflake_table",
         sql="{% include 'create_snowflake_yellow_tripdata_table.sql' %}",
-        params={"table_name": TABLE}
+        params={"table_name": TABLE},
     )
 
     """
@@ -115,7 +107,7 @@ with DAG(
     create_snowflake_stage = SnowflakeOperator(
         task_id="create_snowflake_stage",
         sql="{% include 'create_snowflake_yellow_tripdata_stage.sql' %}",
-        params={"stage_name": f"{TABLE}_STAGE"}
+        params={"stage_name": f"{TABLE}_STAGE"},
     )
 
     """
@@ -126,7 +118,7 @@ with DAG(
         task_id="delete_snowflake_table",
         sql="{% include 'delete_snowflake_table.sql' %}",
         params={"table_name": TABLE},
-        trigger_rule="all_done"
+        trigger_rule="all_done",
     )
 
     """
@@ -181,7 +173,7 @@ with DAG(
         row_quality_check = SnowflakeCheckOperator(
             task_id="row_quality_check",
             sql="row_quality_yellow_tripdata_check.sql",
-            params={"table": TABLE}
+            params={"table": TABLE},
         )
 
         """
@@ -198,7 +190,7 @@ with DAG(
             params={
                 "check_name": "date_check",
                 "check_statement": "dropoff_datetime > pickup_datetime",
-                "table": TABLE
+                "table": TABLE,
             },
         )
 
@@ -208,7 +200,7 @@ with DAG(
             params={
                 "check_name": "passenger_count_check",
                 "check_statement": "passenger_count >= 0",
-                "table": TABLE
+                "table": TABLE,
             },
         )
 
@@ -218,7 +210,7 @@ with DAG(
             params={
                 "check_name": "trip_distance_check",
                 "check_statement": "trip_distance >= 0 AND trip_distance <= 100",
-                "table": TABLE
+                "table": TABLE,
             },
         )
 
@@ -228,7 +220,7 @@ with DAG(
             params={
                 "check_name": "fare_check",
                 "check_statement": "ROUND((fare_amount + extra + mta_tax + tip_amount + improvement_surcharge + COALESCE(congestion_surcharge, 0)), 1) = ROUND(total_amount, 1) THEN 1 WHEN ROUND(fare_amount + extra + mta_tax + tip_amount + improvement_surcharge, 1) = ROUND(total_amount, 1)",
-                "table": TABLE
+                "table": TABLE,
             },
         )
 
@@ -242,16 +234,17 @@ with DAG(
         prefix="test/tripdata_to_snowflake",
         stage=f"{TABLE}_STAGE",
         table=TABLE,
-        file_format="(type = 'CSV', skip_header = 1, time_format = 'YYYY-MM-DD HH24:MI:SS')"
+        file_format="(type = 'CSV', skip_header = 1, time_format = 'YYYY-MM-DD HH24:MI:SS')",
     )
 
     for i, date in enumerate(DATES):
         file_name = f"yellow_tripdata_sample_{date}.csv"
-        file_path = f"/usr/local/airflow/include/sample_data/yellow_trip_data/{file_name}"
+        file_path = (
+            f"/usr/local/airflow/include/sample_data/yellow_trip_data/{file_name}"
+        )
 
         TASK_DICT[f"add_upload_date_{date}"] = add_upload_date(
-            file_path,
-            "{{ macros.ds_add(ds, " + str(-i) + ") }}"
+            file_path, "{{ macros.ds_add(ds, " + str(-i) + ") }}"
         )
 
         """
@@ -261,14 +254,14 @@ with DAG(
         TASK_DICT[f"upload_to_s3_{date}"] = LocalFilesystemToS3Operator(
             task_id=f"upload_to_s3_{date}",
             filename=file_path,
-            dest_key="{{ var.json.aws_configs.s3_key_prefix }}/tripdata_to_snowflake/" + file_name,
+            dest_key="{{ var.json.aws_configs.s3_key_prefix }}/tripdata_to_snowflake/"
+            + file_name,
             dest_bucket="{{ var.json.aws_configs.s3_bucket }}",
             aws_conn_id="aws_default",
-            replace=True
+            replace=True,
         )
 
-        TASK_DICT[f"delete_upload_date_{date}"] = delete_upload_date(
-            file_path)
+        TASK_DICT[f"delete_upload_date_{date}"] = delete_upload_date(file_path)
 
         chain(
             begin,
@@ -278,9 +271,8 @@ with DAG(
             create_snowflake_table,
             create_snowflake_stage,
             load_to_snowflake,
-            [quality_check_group, value_check,
-                interval_check, threshold_check],
+            [quality_check_group, value_check, interval_check, threshold_check],
             delete_snowflake_table,
             [TASK_DICT[f"delete_upload_date_{date}"]],
-            end
+            end,
         )

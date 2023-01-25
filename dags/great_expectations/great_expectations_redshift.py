@@ -15,24 +15,19 @@ What makes this a simple data quality case is:
 """
 
 import os
-
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
 
 from airflow import DAG
 from airflow.models.baseoperator import chain
-from airflow.operators.dummy_operator import DummyOperator
-from airflow.providers.amazon.aws.transfers.local_to_s3 import (
-    LocalFilesystemToS3Operator,
-)
-from airflow.providers.amazon.aws.transfers.s3_to_redshift import S3ToRedshiftOperator
-from airflow.providers.postgres.operators.postgres import PostgresOperator
-from great_expectations_provider.operators.great_expectations import (
-    GreatExpectationsOperator,
-)
-from include.great_expectations.configs.redshift_configs import (
-    redshift_checkpoint_config,
-)
+from airflow.providers.amazon.aws.operators.redshift_sql import \
+    RedshiftSQLOperator
+from airflow.providers.amazon.aws.transfers.local_to_s3 import \
+    LocalFilesystemToS3Operator
+from airflow.providers.amazon.aws.transfers.s3_to_redshift import \
+    S3ToRedshiftOperator
+from great_expectations_provider.operators.great_expectations import \
+    GreatExpectationsOperator
 
 table = "yellow_tripdata"
 base_path = Path(__file__).parents[2]
@@ -42,7 +37,6 @@ data_file = os.path.join(
     "sample_data/yellow_trip_data/yellow_tripdata_sample_2019-01.csv",
 )
 ge_root_dir = os.path.join(base_path, "include", "great_expectations")
-checkpoint_config = redshift_checkpoint_config
 
 with DAG(
     "great_expectations.redshift",
@@ -53,7 +47,6 @@ with DAG(
     template_searchpath=f"{base_path}/include/sql/great_expectations_examples/",
     catchup=False,
 ) as dag:
-
 
     upload_to_s3 = LocalFilesystemToS3Operator(
         task_id="upload_to_s3",
@@ -71,11 +64,11 @@ with DAG(
     this is done manually to avoid unnecessary costs. Additionally, set-up may
     need to be done in Airflow connections to allow access to Redshift.
     """
-    create_redshift_table = PostgresOperator(
+    create_redshift_table = RedshiftSQLOperator(
         task_id="create_redshift_table",
         sql="{% include 'create_yellow_tripdata_redshift_table.sql' %}",
-        params={"table_name": "yellow_tripdata"},
-        postgres_conn_id="redshift_default",
+        parameters={"table_name": "yellow_tripdata"},
+        redshift_conn_id="redshift_default",
     )
 
     """
@@ -99,7 +92,10 @@ with DAG(
     ge_redshift_validation = GreatExpectationsOperator(
         task_id="ge_redshift_validation",
         data_context_root_dir=ge_root_dir,
-        checkpoint_config=checkpoint_config,
+        conn_id="redshift_default",
+        expectation_suite_name="taxi.demo",
+        data_asset_name=table,
+        fail_task_on_validation_failure=False,
     )
 
     """
@@ -108,22 +104,17 @@ with DAG(
     data in the success and failure cases do not interfere with each other during
     the data quality check.
     """
-    drop_redshift_table = PostgresOperator(
+    drop_redshift_table = RedshiftSQLOperator(
         task_id="drop_table",
         sql="delete_yellow_tripdata_table.sql",
-        postgres_conn_id="redshift_default",
-        params={"table_name": table},
+        redshift_conn_id="redshift_default",
+        parameters={"table_name": table},
     )
 
-    begin = DummyOperator(task_id="begin")
-    end = DummyOperator(task_id="end")
-
     chain(
-        begin,
         upload_to_s3,
         create_redshift_table,
         load_to_redshift,
         ge_redshift_validation,
         drop_redshift_table,
-        end,
     )

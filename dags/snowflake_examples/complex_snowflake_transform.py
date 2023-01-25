@@ -16,12 +16,13 @@ connection provided to the operator under the connection ID `snowflake_default`.
 from airflow import DAG
 from airflow.models.baseoperator import chain
 from airflow.operators.empty import EmptyOperator
-from airflow.providers.common.sql.operators.sql import SQLColumnCheckOperator, SQLTableCheckOperator
-from airflow.providers.slack.operators.slack_webhook import SlackWebhookOperator
+from airflow.providers.common.sql.operators.sql import (SQLColumnCheckOperator,
+                                                        SQLTableCheckOperator)
+from airflow.providers.slack.operators.slack_webhook import \
+    SlackWebhookOperator
 from airflow.providers.snowflake.operators.snowflake import SnowflakeOperator
 from airflow.utils.dates import datetime
 from airflow.utils.task_group import TaskGroup
-
 
 SNOWFLAKE_FORESTFIRE_TABLE = "forestfires"
 SNOWFLAKE_COST_TABLE = "costs"
@@ -30,6 +31,7 @@ SNOWFLAKE_FORESTFIRE_COST_TABLE = "forestfire_costs"
 SNOWFLAKE_CONN_ID = "snowflake_default"
 
 ROW_COUNT_CHECK = "COUNT(*) = 9"
+
 
 def slack_failure_notification(context):
     task_id = context.get("task_instance").task_id
@@ -52,6 +54,7 @@ def slack_failure_notification(context):
     )
     return failed_alert.execute(context=context)
 
+
 with DAG(
     "complex_snowflake_transform",
     description="Example DAG showcasing loading, transforming, and data quality checking with multiple datasets in Snowflake.",
@@ -59,7 +62,7 @@ with DAG(
     start_date=datetime(2021, 1, 1),
     schedule_interval=None,
     template_searchpath="/usr/local/airflow/include/sql/snowflake_examples/",
-    catchup=False
+    catchup=False,
 ) as dag:
     """
     #### Snowflake table creation
@@ -68,19 +71,19 @@ with DAG(
     create_forestfire_table = SnowflakeOperator(
         task_id="create_forestfire_table",
         sql="create_forestfire_table.sql",
-        params={"table_name": SNOWFLAKE_FORESTFIRE_TABLE}
+        params={"table_name": SNOWFLAKE_FORESTFIRE_TABLE},
     )
 
     create_cost_table = SnowflakeOperator(
         task_id="create_cost_table",
         sql="create_cost_table.sql",
-        params={"table_name": SNOWFLAKE_COST_TABLE}
+        params={"table_name": SNOWFLAKE_COST_TABLE},
     )
 
     create_forestfire_cost_table = SnowflakeOperator(
         task_id="create_forestfire_cost_table",
         sql="create_forestfire_cost_table.sql",
-        params={"table_name": SNOWFLAKE_FORESTFIRE_COST_TABLE}
+        params={"table_name": SNOWFLAKE_FORESTFIRE_COST_TABLE},
     )
 
     """
@@ -91,19 +94,19 @@ with DAG(
     load_forestfire_data = SnowflakeOperator(
         task_id="load_forestfire_data",
         sql="load_snowflake_forestfire_data.sql",
-        params={"table_name": SNOWFLAKE_FORESTFIRE_TABLE}
+        params={"table_name": SNOWFLAKE_FORESTFIRE_TABLE},
     )
 
     load_cost_data = SnowflakeOperator(
         task_id="load_cost_data",
         sql="load_cost_data.sql",
-        params={"table_name": SNOWFLAKE_COST_TABLE}
+        params={"table_name": SNOWFLAKE_COST_TABLE},
     )
 
-    load_forestfire_cost_data  = SnowflakeOperator(
+    load_forestfire_cost_data = SnowflakeOperator(
         task_id="load_forestfire_cost_data",
         sql="load_forestfire_cost_data.sql",
-        params={"table_name": SNOWFLAKE_FORESTFIRE_COST_TABLE}
+        params={"table_name": SNOWFLAKE_FORESTFIRE_COST_TABLE},
     )
 
     """
@@ -114,7 +117,7 @@ with DAG(
     transform_forestfire_cost_table = SnowflakeOperator(
         task_id="transform_forestfire_cost_table",
         sql="transform_forestfire_cost_table.sql",
-        params={"table_name": SNOWFLAKE_FORESTFIRE_COST_TABLE}
+        params={"table_name": SNOWFLAKE_FORESTFIRE_COST_TABLE},
     )
 
     """
@@ -125,8 +128,8 @@ with DAG(
         group_id="quality_check_group_forestfire",
         default_args={
             "conn_id": SNOWFLAKE_CONN_ID,
-            "on_failure_callback": slack_failure_notification
-        }
+            "on_failure_callback": slack_failure_notification,
+        },
     ) as quality_check_group_forestfire:
         """
         #### Column-level data quality check
@@ -137,8 +140,8 @@ with DAG(
             table=SNOWFLAKE_FORESTFIRE_TABLE,
             column_mapping={
                 "ID": {"null_check": {"equal_to": 0}},
-                "RH": {"max": {"leq_to": 100}}
-            }
+                "RH": {"max": {"leq_to": 100}},
+            },
         )
 
         """
@@ -148,15 +151,15 @@ with DAG(
         forestfire_table_checks = SQLTableCheckOperator(
             task_id="forestfire_table_checks",
             table=SNOWFLAKE_FORESTFIRE_TABLE,
-            checks={"row_count_check": {"check_statement": ROW_COUNT_CHECK}}
+            checks={"row_count_check": {"check_statement": ROW_COUNT_CHECK}},
         )
 
     with TaskGroup(
         group_id="quality_check_group_cost",
         default_args={
             "conn_id": SNOWFLAKE_CONN_ID,
-            "on_failure_callback": slack_failure_notification
-        }
+            "on_failure_callback": slack_failure_notification,
+        },
     ) as quality_check_group_cost:
         """
         #### Column-level data quality check
@@ -170,7 +173,7 @@ with DAG(
                 "LAND_DAMAGE_COST": {"min": {"geq_to": 0}},
                 "PROPERTY_DAMAGE_COST": {"min": {"geq_to": 0}},
                 "LOST_PROFITS_COST": {"min": {"geq_to": 0}},
-            }
+            },
         )
 
         """
@@ -180,15 +183,15 @@ with DAG(
         cost_table_checks = SQLTableCheckOperator(
             task_id="cost_table_checks",
             table=SNOWFLAKE_COST_TABLE,
-            checks={"row_count_check": {"check_statement": ROW_COUNT_CHECK}}
+            checks={"row_count_check": {"check_statement": ROW_COUNT_CHECK}},
         )
 
     with TaskGroup(
         group_id="quality_check_group_forestfire_costs",
         default_args={
             "conn_id": SNOWFLAKE_CONN_ID,
-            "on_failure_callback": slack_failure_notification
-        }
+            "on_failure_callback": slack_failure_notification,
+        },
     ) as quality_check_group_forestfire_costs:
         """
         #### Column-level data quality check
@@ -197,7 +200,7 @@ with DAG(
         forestfire_costs_column_checks = SQLColumnCheckOperator(
             task_id="forestfire_costs_column_checks",
             table=SNOWFLAKE_FORESTFIRE_COST_TABLE,
-            column_mapping={"AREA": {"min": {"geq_to": 0}}}
+            column_mapping={"AREA": {"min": {"geq_to": 0}}},
         )
 
         """
@@ -209,10 +212,11 @@ with DAG(
             table=SNOWFLAKE_FORESTFIRE_COST_TABLE,
             checks={
                 "row_count_check": {"check_statement": ROW_COUNT_CHECK},
-                "total_cost_check": {"check_statement": "land_damage_cost + property_damage_cost + lost_profits_cost = total_cost"}
-            }
+                "total_cost_check": {
+                    "check_statement": "land_damage_cost + property_damage_cost + lost_profits_cost = total_cost"
+                },
+            },
         )
-
 
     """
     #### Delete tables
@@ -221,19 +225,19 @@ with DAG(
     delete_forestfire_table = SnowflakeOperator(
         task_id="delete_forestfire_table",
         sql="delete_snowflake_table.sql",
-        params={"table_name": SNOWFLAKE_FORESTFIRE_TABLE}
+        params={"table_name": SNOWFLAKE_FORESTFIRE_TABLE},
     )
 
     delete_cost_table = SnowflakeOperator(
         task_id="delete_costs_table",
         sql="delete_snowflake_table.sql",
-        params={"table_name": SNOWFLAKE_COST_TABLE}
+        params={"table_name": SNOWFLAKE_COST_TABLE},
     )
 
     delete_forestfire_cost_table = SnowflakeOperator(
         task_id="delete_forestfire_cost_table",
         sql="delete_snowflake_table.sql",
-        params={"table_name": SNOWFLAKE_FORESTFIRE_COST_TABLE}
+        params={"table_name": SNOWFLAKE_FORESTFIRE_COST_TABLE},
     )
 
     begin = EmptyOperator(task_id="begin")
@@ -252,5 +256,5 @@ with DAG(
         quality_check_group_forestfire_costs,
         transform_forestfire_cost_table,
         [delete_forestfire_table, delete_cost_table, delete_forestfire_cost_table],
-        end
+        end,
     )

@@ -10,7 +10,7 @@ from great_expectations.data_context.types.base import (
 
 base_path = Path(__file__).parents[3]
 data_dir = os.path.join(base_path, "include", "data")
-ge_root_dir = os.path.join(base_path, "include", "great_expectations_project")
+ge_root_dir = os.path.join(base_path, "include", "great_expectations")
 connection_string = ""
 
 with open(
