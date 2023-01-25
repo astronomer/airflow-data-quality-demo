@@ -10,28 +10,26 @@ Note this DAG will clean up after itself once it's done running.
 """
 
 import json
-
 from pathlib import Path
 
 from airflow import DAG
 from airflow.models.baseoperator import chain
 from airflow.operators.empty import EmptyOperator
-from airflow.providers.common.sql.operators.sql import SQLColumnCheckOperator, SQLTableCheckOperator
+from airflow.providers.common.sql.operators.sql import (SQLColumnCheckOperator,
+                                                        SQLTableCheckOperator)
 from airflow.providers.snowflake.operators.snowflake import SnowflakeOperator
 from airflow.utils.dates import datetime
 from airflow.utils.task_group import TaskGroup
 
-from include.forestfire_checks.checks import TABLE_CHECKS, COL_CHECKS
-from include.libs.schema_reg.base_schema_transforms import snowflake_load_column_string
-
+from include.forestfire_checks.checks import COL_CHECKS, TABLE_CHECKS
+from include.libs.schema_reg.base_schema_transforms import \
+    snowflake_load_column_string
 
 SNOWFLAKE_FORESTFIRE_TABLE = "forestfires"
 SNOWFLAKE_AUDIT_TABLE = f"{SNOWFLAKE_FORESTFIRE_TABLE}_AUDIT"
 
 base_path = Path(__file__).parents[2]
-table_schema_path = (
-    f"{base_path}/include/sql/snowflake_examples/table_schemas/"
-)
+table_schema_path = f"{base_path}/include/sql/snowflake_examples/table_schemas/"
 
 with DAG(
     "snowflake_dynamic_write_audit_publish",
@@ -59,7 +57,7 @@ with DAG(
     create_forestfire_production_table = SnowflakeOperator(
         task_id="create_forestfire_production_table",
         sql="create_forestfire_table.sql",
-        params={"table_name": SNOWFLAKE_FORESTFIRE_TABLE}
+        params={"table_name": SNOWFLAKE_FORESTFIRE_TABLE},
     )
 
     """
@@ -70,7 +68,7 @@ with DAG(
     load_data = SnowflakeOperator(
         task_id="insert_query",
         sql="load_snowflake_forestfire_data.sql",
-        params={"table_name": SNOWFLAKE_AUDIT_TABLE}
+        params={"table_name": SNOWFLAKE_AUDIT_TABLE},
     )
 
     with TaskGroup(group_id="quality_checks") as quality_check_group:
@@ -81,9 +79,7 @@ with DAG(
         column_checks = SQLColumnCheckOperator.partial(
             task_id="column_checks",
             table=SNOWFLAKE_AUDIT_TABLE,
-        ).expand(
-            column_mapping=COL_CHECKS
-        )
+        ).expand(column_mapping=COL_CHECKS)
 
         """
         #### Table-level data quality check
@@ -92,9 +88,7 @@ with DAG(
         table_checks = SQLTableCheckOperator.partial(
             task_id="table_checks",
             table=SNOWFLAKE_AUDIT_TABLE,
-        ).expand(
-            checks=TABLE_CHECKS
-        )
+        ).expand(checks=TABLE_CHECKS)
 
     with open(
         f"{table_schema_path}/forestfire_schema.json",
@@ -120,7 +114,7 @@ with DAG(
                 "table_schema": table_props,
                 "col_string": col_string,
             },
-            trigger_rule="all_success"
+            trigger_rule="all_success",
         )
 
     """
@@ -131,7 +125,7 @@ with DAG(
         task_id="delete_audit_table",
         sql="delete_forestfire_table.sql",
         params={"table_name": f"{SNOWFLAKE_FORESTFIRE_TABLE}_AUDIT"},
-        trigger_rule="all_success"
+        trigger_rule="all_success",
     )
 
     begin = EmptyOperator(task_id="begin")
@@ -144,5 +138,5 @@ with DAG(
         quality_check_group,
         copy_snowflake_audit_to_production_table,
         delete_audit_table,
-        end
+        end,
     )

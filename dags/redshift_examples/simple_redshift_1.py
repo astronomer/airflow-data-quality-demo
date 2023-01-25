@@ -32,11 +32,9 @@ from airflow.decorators import task
 from airflow.models import Variable
 from airflow.operators.dummy_operator import DummyOperator
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
-from airflow.providers.amazon.aws.transfers.local_to_s3 import (
-    LocalFilesystemToS3Operator,
-)
+from airflow.providers.amazon.aws.transfers.local_to_s3 import \
+    LocalFilesystemToS3Operator
 from airflow.utils.dates import datetime
-
 
 # The file(s) to upload shouldn't be hardcoded in a production setting, this is just for demo purposes.
 CSV_FILE_NAME = "forestfires.csv"
@@ -77,8 +75,7 @@ with DAG(
         )
         obj_etag = obj.e_tag.strip('"')
         # Change `CSV_FILE_PATH` to `CSV_CORRUPT_FILE_PATH` for the "sad path".
-        file_hash = hashlib.md5(
-            open(CSV_FILE_PATH).read().encode("utf-8")).hexdigest()
+        file_hash = hashlib.md5(open(CSV_FILE_PATH).read().encode("utf-8")).hexdigest()
         if obj_etag != file_hash:
             raise AirflowException(
                 f"Upload Error: Object ETag in S3 did not match hash of local file."

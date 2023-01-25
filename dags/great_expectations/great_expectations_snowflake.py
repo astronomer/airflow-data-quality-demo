@@ -15,20 +15,18 @@ What makes this a simple data quality case is:
 """
 
 import os
-import pandas as pd
-
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
 
+import pandas as pd
 from airflow import DAG
 from airflow.models.baseoperator import chain
 from airflow.providers.snowflake.operators.snowflake import SnowflakeOperator
-from great_expectations_provider.operators.great_expectations import (
-    GreatExpectationsOperator,
-)
+from great_expectations_provider.operators.great_expectations import \
+    GreatExpectationsOperator
+
 from include.great_expectations.configs.snowflake_configs import (
-    snowflake_checkpoint_config, snowflake_data_context_config
-)
+    snowflake_checkpoint_config, snowflake_data_context_config)
 
 # This table variable is a placeholder, in a live environment, it is better
 # to pull the table info from a Variable in a template
@@ -60,7 +58,7 @@ with DAG(
     create_table = SnowflakeOperator(
         task_id="create_table",
         sql="{% include 'create_snowflake_yellow_tripdata_table.sql' %}",
-        params={"table_name": table}
+        params={"table_name": table},
     )
 
     """
@@ -71,7 +69,7 @@ with DAG(
     load_data = SnowflakeOperator(
         task_id="insert_query",
         sql="{% include 'load_yellow_tripdata.sql' %}",
-        params={"table_name": table}
+        params={"table_name": table},
     )
 
     """
@@ -81,7 +79,7 @@ with DAG(
     delete_table = SnowflakeOperator(
         task_id="delete_table",
         sql="{% include 'delete_snowflake_table.sql' %}",
-        params={"table_name": table}
+        params={"table_name": table},
     )
 
     """
@@ -104,7 +102,7 @@ with DAG(
         query_to_validate="SELECT *",
         expectation_suite_name="taxi.demo",
         data_asset_name=table,
-        fail_task_on_validation_failure=False
+        fail_task_on_validation_failure=False,
     )
 
     chain(

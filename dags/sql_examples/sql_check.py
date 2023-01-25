@@ -16,13 +16,10 @@ Task in sql_check_redshift_etl.py.
 from airflow import DAG
 from airflow.models.baseoperator import chain
 from airflow.operators.dummy_operator import DummyOperator
+from airflow.operators.sql import (SQLCheckOperator, SQLIntervalCheckOperator,
+                                   SQLThresholdCheckOperator,
+                                   SQLValueCheckOperator)
 from airflow.utils.dates import datetime
-from airflow.operators.sql import (
-    SQLCheckOperator,
-    SQLValueCheckOperator,
-    SQLIntervalCheckOperator,
-    SQLThresholdCheckOperator
-)
 from airflow.utils.task_group import TaskGroup
 
 # This table variable is a placeholder, in a live environment, it is better
@@ -39,9 +36,8 @@ with DAG(
     schedule_interval=None,
     default_args={"conn_id": "postgres_default"},
     template_searchpath="/usr/local/airflow/include/sql/sql_examples/",
-    catchup=False
+    catchup=False,
 ) as dag:
-
 
     begin = DummyOperator(task_id="begin")
     end = DummyOperator(task_id="end")
@@ -53,7 +49,7 @@ with DAG(
     value_check = SQLValueCheckOperator(
         task_id="check_row_count",
         sql=f"SELECT COUNT(*) FROM {TABLE};",
-        pass_value=20000
+        pass_value=20000,
     )
 
     """
@@ -66,7 +62,7 @@ with DAG(
         table=TABLE,
         days_back=-1,
         date_filter_column="upload_date",
-        metrics_thresholds={"AVG(trip_distance)": 1.5}
+        metrics_thresholds={"AVG(trip_distance)": 1.5},
     )
 
     """
@@ -78,7 +74,7 @@ with DAG(
         task_id="check_threshold",
         sql=f"SELECT MAX(passenger_count) FROM {TABLE};",
         min_threshold=1,
-        max_threshold=8
+        max_threshold=8,
     )
 
     """
@@ -96,11 +92,11 @@ with DAG(
             """
             SQLCheckOperator(
                 task_id=f"yellow_tripdata_row_quality_check_{i}",
-                sql="row_quality_yellow_tripdata_check.sql"
+                sql="row_quality_yellow_tripdata_check.sql",
             )
 
         chain(
             begin,
             [quality_check_group, value_check, interval_check, threshold_check],
-            end
+            end,
         )

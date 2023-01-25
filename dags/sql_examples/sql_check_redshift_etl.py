@@ -13,24 +13,21 @@ This DAG can be used with other databases as long as the Redshift (and possibly
 transfer operators) are changed.
 """
 
+import pandas as pd
 from airflow import DAG
+from airflow.decorators import task
 from airflow.models.baseoperator import chain
 from airflow.operators.dummy_operator import DummyOperator
-from airflow.utils.dates import datetime
-from airflow.operators.sql import (
-    SQLCheckOperator,
-    SQLValueCheckOperator,
-    SQLIntervalCheckOperator,
-    SQLThresholdCheckOperator
-)
-from airflow.utils.task_group import TaskGroup
-from airflow.providers.amazon.aws.transfers.local_to_s3 import LocalFilesystemToS3Operator
-from airflow.providers.amazon.aws.transfers.s3_to_redshift import S3ToRedshiftOperator
+from airflow.operators.sql import (SQLCheckOperator, SQLIntervalCheckOperator,
+                                   SQLThresholdCheckOperator,
+                                   SQLValueCheckOperator)
+from airflow.providers.amazon.aws.transfers.local_to_s3 import \
+    LocalFilesystemToS3Operator
+from airflow.providers.amazon.aws.transfers.s3_to_redshift import \
+    S3ToRedshiftOperator
 from airflow.providers.postgres.operators.postgres import PostgresOperator
-from airflow.decorators import task
-
-import pandas as pd
-
+from airflow.utils.dates import datetime
+from airflow.utils.task_group import TaskGroup
 
 DATES = ["2019-01", "2019-02"]
 TASK_DICT = {}
@@ -42,9 +39,8 @@ with DAG(
     schedule_interval=None,
     default_args={"conn_id": "redshift_default"},
     template_searchpath="/usr/local/airflow/include/sql/sql_examples/",
-    catchup=False
+    catchup=False,
 ) as dag:
-
 
     """
     #### Dummy operators
@@ -66,7 +62,7 @@ with DAG(
     create_redshift_table = PostgresOperator(
         task_id="create_table",
         sql="create_redshift_yellow_tripdata_table.sql",
-        postgres_conn_id="redshift_default"
+        postgres_conn_id="redshift_default",
     )
 
     with TaskGroup(group_id="row_quality_checks") as quality_check_group:
@@ -83,7 +79,7 @@ with DAG(
             """
             SQLCheckOperator(
                 task_id=f"yellow_tripdata_row_quality_check_{i}",
-                sql="row_quality_yellow_tripdata_check.sql"
+                sql="row_quality_yellow_tripdata_check.sql",
             )
 
     """
@@ -93,7 +89,7 @@ with DAG(
     value_check = SQLValueCheckOperator(
         task_id="check_row_count",
         sql="SELECT COUNT(*) FROM {{ var.json.aws_configs.redshift_table }};",
-        pass_value=20000
+        pass_value=20000,
     )
 
     """
@@ -106,7 +102,7 @@ with DAG(
         table="{{ var.json.aws_configs.redshift_table }}",
         days_back=-1,
         date_filter_column="upload_date",
-        metrics_thresholds={"AVG(trip_distance)": 1.5}
+        metrics_thresholds={"AVG(trip_distance)": 1.5},
     )
 
     """
@@ -118,7 +114,7 @@ with DAG(
         task_id="check_threshold",
         sql="SELECT MAX(passenger_count) FROM {{ var.json.aws_configs.redshift_table }};",
         min_threshold=1,
-        max_threshold=8
+        max_threshold=8,
     )
 
     """
@@ -130,7 +126,7 @@ with DAG(
     drop_redshift_table = PostgresOperator(
         task_id="drop_table",
         sql="drop_redshift_yellow_tripdata_table.sql",
-        postgres_conn_id="redshift_default"
+        postgres_conn_id="redshift_default",
     )
 
     @task
@@ -149,14 +145,10 @@ with DAG(
             file_path,
             header=0,
             parse_dates=["pickup_datetime"],
-            infer_datetime_format=True
+            infer_datetime_format=True,
         )
         trip_dict["upload_date"] = upload_date
-        trip_dict.to_csv(
-            file_path,
-            header=True,
-            index=False
-        )
+        trip_dict.to_csv(file_path, header=True, index=False)
 
     @task
     def delete_upload_date(file_path):
@@ -170,21 +162,16 @@ with DAG(
             file_path,
             header=0,
             parse_dates=["pickup_datetime"],
-            infer_datetime_format=True
+            infer_datetime_format=True,
         )
         trip_dict.drop(columns="upload_date", inplace=True)
-        trip_dict.to_csv(
-            file_path,
-            header=True,
-            index=False
-        )
+        trip_dict.to_csv(file_path, header=True, index=False)
 
     for i, date in enumerate(DATES):
         file_path = f"/usr/local/airflow/include/sample_data/yellow_trip_data/yellow_tripdata_sample_{date}.csv"
 
         TASK_DICT[f"add_upload_date_{date}"] = add_upload_date(
-            file_path,
-            "{{ macros.ds_add(ds, " + str(-i) + ") }}"
+            file_path, "{{ macros.ds_add(ds, " + str(-i) + ") }}"
         )
 
         """
@@ -197,7 +184,7 @@ with DAG(
             dest_key="{{ var.json.aws_configs.s3_key_prefix }}/" + file_path,
             dest_bucket="{{ var.json.aws_configs.s3_bucket }}",
             aws_conn_id="aws_default",
-            replace=True
+            replace=True,
         )
 
         """
@@ -211,9 +198,11 @@ with DAG(
             s3_key="{{ var.json.aws_configs.s3_key_prefix }}/" + file_path,
             schema="PUBLIC",
             table="{{ var.json.aws_configs.redshift_table }}",
-            copy_options=["csv",
-                          "ignoreheader 1",
-                          "TIMEFORMAT AS 'YYYY-MM-DD HH24:MI:SS'"]
+            copy_options=[
+                "csv",
+                "ignoreheader 1",
+                "TIMEFORMAT AS 'YYYY-MM-DD HH24:MI:SS'",
+            ],
         )
 
         TASK_DICT[f"delete_upload_date_{date}"] = delete_upload_date(file_path)
@@ -229,5 +218,5 @@ with DAG(
             [quality_check_group, value_check, interval_check, threshold_check],
             drop_redshift_table,
             [TASK_DICT[f"delete_upload_date_{date}"]],
-            end
+            end,
         )

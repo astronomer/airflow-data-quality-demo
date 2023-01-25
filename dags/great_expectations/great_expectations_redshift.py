@@ -15,20 +15,19 @@ What makes this a simple data quality case is:
 """
 
 import os
-
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
 
 from airflow import DAG
 from airflow.models.baseoperator import chain
-from airflow.providers.amazon.aws.transfers.local_to_s3 import (
-    LocalFilesystemToS3Operator,
-)
-from airflow.providers.amazon.aws.transfers.s3_to_redshift import S3ToRedshiftOperator
-from airflow.providers.amazon.aws.operators.redshift_sql import RedshiftSQLOperator
-from great_expectations_provider.operators.great_expectations import (
-    GreatExpectationsOperator,
-)
+from airflow.providers.amazon.aws.operators.redshift_sql import \
+    RedshiftSQLOperator
+from airflow.providers.amazon.aws.transfers.local_to_s3 import \
+    LocalFilesystemToS3Operator
+from airflow.providers.amazon.aws.transfers.s3_to_redshift import \
+    S3ToRedshiftOperator
+from great_expectations_provider.operators.great_expectations import \
+    GreatExpectationsOperator
 
 table = "yellow_tripdata"
 base_path = Path(__file__).parents[2]
@@ -48,7 +47,6 @@ with DAG(
     template_searchpath=f"{base_path}/include/sql/great_expectations_examples/",
     catchup=False,
 ) as dag:
-
 
     upload_to_s3 = LocalFilesystemToS3Operator(
         task_id="upload_to_s3",
@@ -97,7 +95,7 @@ with DAG(
         conn_id="redshift_default",
         expectation_suite_name="taxi.demo",
         data_asset_name=table,
-        fail_task_on_validation_failure=False
+        fail_task_on_validation_failure=False,
     )
 
     """

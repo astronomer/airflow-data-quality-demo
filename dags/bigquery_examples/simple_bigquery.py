@@ -20,18 +20,14 @@ import json
 from airflow import DAG
 from airflow.models.baseoperator import chain
 from airflow.operators.dummy_operator import DummyOperator
-from airflow.providers.google.cloud.sensors.bigquery import BigQueryTableExistenceSensor
 from airflow.providers.google.cloud.operators.bigquery import (
-    BigQueryCreateEmptyDatasetOperator,
-    BigQueryCreateEmptyTableOperator,
-    BigQueryInsertJobOperator,
-    BigQueryCheckOperator,
-    BigQueryValueCheckOperator,
-    BigQueryDeleteDatasetOperator,
-)
+    BigQueryCheckOperator, BigQueryCreateEmptyDatasetOperator,
+    BigQueryCreateEmptyTableOperator, BigQueryDeleteDatasetOperator,
+    BigQueryInsertJobOperator, BigQueryValueCheckOperator)
+from airflow.providers.google.cloud.sensors.bigquery import \
+    BigQueryTableExistenceSensor
 from airflow.utils.dates import datetime
 from airflow.utils.task_group import TaskGroup
-
 
 DATASET = "simple_bigquery_example_dag"
 TABLE = "forestfires"
@@ -45,7 +41,6 @@ with DAG(
     template_searchpath="/usr/local/airflow/include/sql/bigquery_examples/",
     catchup=False,
 ) as dag:
-
 
     """
     #### BigQuery dataset creation

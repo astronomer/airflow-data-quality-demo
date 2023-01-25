@@ -20,11 +20,11 @@ What makes this a simple data quality case is:
 from airflow import DAG
 from airflow.models.baseoperator import chain
 from airflow.operators.empty import EmptyOperator
-from airflow.providers.common.sql.operators.sql import SQLColumnCheckOperator, SQLTableCheckOperator
+from airflow.providers.common.sql.operators.sql import (SQLColumnCheckOperator,
+                                                        SQLTableCheckOperator)
 from airflow.providers.snowflake.operators.snowflake import SnowflakeOperator
 from airflow.utils.dates import datetime
 from airflow.utils.task_group import TaskGroup
-
 
 SNOWFLAKE_FORESTFIRE_TABLE = "forestfires"
 SNOWFLAKE_CONN_ID = "snowflake_default"
@@ -37,9 +37,8 @@ with DAG(
     start_date=datetime(2021, 1, 1),
     schedule_interval=None,
     template_searchpath="/usr/local/airflow/include/sql/snowflake_examples/",
-    catchup=False
+    catchup=False,
 ) as dag:
-
 
     """
     #### Snowflake table creation
@@ -48,7 +47,7 @@ with DAG(
     create_table = SnowflakeOperator(
         task_id="create_table",
         sql="{% include 'create_forestfire_table.sql' %}",
-        params={"table_name": SNOWFLAKE_FORESTFIRE_TABLE}
+        params={"table_name": SNOWFLAKE_FORESTFIRE_TABLE},
     )
 
     """
@@ -59,10 +58,12 @@ with DAG(
     load_data = SnowflakeOperator(
         task_id="insert_query",
         sql="{% include 'load_snowflake_forestfire_data.sql' %}",
-        params={"table_name": SNOWFLAKE_FORESTFIRE_TABLE}
+        params={"table_name": SNOWFLAKE_FORESTFIRE_TABLE},
     )
 
-    with TaskGroup(group_id="quality_checks", default_args={"conn_id": SNOWFLAKE_CONN_ID}) as quality_check_group:
+    with TaskGroup(
+        group_id="quality_checks", default_args={"conn_id": SNOWFLAKE_CONN_ID}
+    ) as quality_check_group:
         """
         #### Column-level data quality check
         Run data quality checks on columns of the audit table
@@ -70,7 +71,7 @@ with DAG(
         column_checks = SQLColumnCheckOperator(
             task_id="column_checks",
             table=SNOWFLAKE_FORESTFIRE_TABLE,
-            column_mapping={"ID": {"null_check": {"equal_to": 0}}}
+            column_mapping={"ID": {"null_check": {"equal_to": 0}}},
         )
 
         """
@@ -80,7 +81,7 @@ with DAG(
         table_checks = SQLTableCheckOperator(
             task_id="table_checks",
             table=SNOWFLAKE_FORESTFIRE_TABLE,
-            checks={"row_count_check": {"check_statement": "COUNT(*) = 9"}}
+            checks={"row_count_check": {"check_statement": "COUNT(*) = 9"}},
         )
 
     """
@@ -90,17 +91,10 @@ with DAG(
     delete_table = SnowflakeOperator(
         task_id="delete_table",
         sql="{% include 'delete_snowflake_table.sql' %}",
-        params={"table_name": SNOWFLAKE_FORESTFIRE_TABLE}
+        params={"table_name": SNOWFLAKE_FORESTFIRE_TABLE},
     )
 
     begin = EmptyOperator(task_id="begin")
     end = EmptyOperator(task_id="end")
 
-    chain(
-        begin,
-        create_table,
-        load_data,
-        quality_check_group,
-        delete_table,
-        end
-    )
+    chain(begin, create_table, load_data, quality_check_group, delete_table, end)

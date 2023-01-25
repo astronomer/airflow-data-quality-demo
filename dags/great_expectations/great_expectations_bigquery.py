@@ -16,26 +16,20 @@ What makes this a simple data quality case is:
 """
 
 import os
-
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
 
 from airflow import DAG
 from airflow.models.baseoperator import chain
 from airflow.providers.google.cloud.operators.bigquery import (
-    BigQueryCreateEmptyDatasetOperator,
-    BigQueryDeleteDatasetOperator,
-    BigQueryCreateEmptyTableOperator,
-)
-from airflow.providers.google.cloud.transfers.local_to_gcs import (
-    LocalFilesystemToGCSOperator,
-)
-from airflow.providers.google.cloud.transfers.gcs_to_bigquery import (
-    GCSToBigQueryOperator,
-)
-from great_expectations_provider.operators.great_expectations import (
-    GreatExpectationsOperator,
-)
+    BigQueryCreateEmptyDatasetOperator, BigQueryCreateEmptyTableOperator,
+    BigQueryDeleteDatasetOperator)
+from airflow.providers.google.cloud.transfers.gcs_to_bigquery import \
+    GCSToBigQueryOperator
+from airflow.providers.google.cloud.transfers.local_to_gcs import \
+    LocalFilesystemToGCSOperator
+from great_expectations_provider.operators.great_expectations import \
+    GreatExpectationsOperator
 
 base_path = Path(__file__).parents[2]
 data_file = os.path.join(
@@ -60,7 +54,6 @@ with DAG(
     start_date=datetime(2021, 1, 1),
     catchup=False,
 ) as dag:
-
 
     """
     #### BigQuery dataset creation
@@ -157,7 +150,7 @@ with DAG(
         conn_id="bigquery_default",
         expectation_suite_name="taxi.demo",
         data_asset_name=bq_table,
-        fail_task_on_validation_failure=False
+        fail_task_on_validation_failure=False,
     )
 
     """

@@ -12,34 +12,35 @@ By default, Airflow stores all return values in XCom. However, this can introduc
 By using an external XCom backend, users can easily push and pull all intermediary data generated in their DAG in GCS.
 """
 
-import os
 import logging
-import mlflow
+import os
+from datetime import datetime
+from pathlib import Path
+
 import great_expectations as ge
-import pandas as pd
 import lightgbm as lgb
+import mlflow
+import pandas as pd
+from airflow.decorators import dag, task, task_group
+from airflow.exceptions import AirflowException
+from airflow.providers.google.cloud.hooks.bigquery import BigQueryHook
+from great_expectations.checkpoint import Checkpoint
+from great_expectations.core.batch import RuntimeBatchRequest
+from great_expectations.data_context.types.base import CheckpointConfig
+from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import GridSearchCV, train_test_split
 
 import include.metrics as metrics
-
-from datetime import datetime
-from great_expectations.core.batch import RuntimeBatchRequest
-from great_expectations.checkpoint import Checkpoint
-from great_expectations.data_context.types.base import CheckpointConfig
-from pathlib import Path
-from sklearn.model_selection import train_test_split, GridSearchCV
-from sklearn.linear_model import LogisticRegression
-
-from airflow.decorators import task, dag, task_group
-from airflow.providers.google.cloud.hooks.bigquery import BigQueryHook
-from airflow.exceptions import AirflowException
 from include.great_expectations.configs.mlflow_checkpoint_config import (
-    mlflow_preprocess_checkpoint_config,
-    mlflow_feature_checkpoint_config
-)
+    mlflow_feature_checkpoint_config, mlflow_preprocess_checkpoint_config)
 from include.grid_configs import models, params
 
+
 @dag(
-    start_date=datetime(2021, 1, 1), schedule_interval=None, catchup=False, doc_md=__doc__
+    start_date=datetime(2021, 1, 1),
+    schedule_interval=None,
+    catchup=False,
+    doc_md=__doc__,
 )
 def mlflow_multimodel_register_example():
     @task
@@ -73,8 +74,7 @@ def mlflow_multimodel_register_example():
                 df[col] = df[col].apply(lambda x: x.rstrip().lstrip())
 
         # Rename up '?' values as 'Unknown'
-        df["workclass"] = df["workclass"].apply(
-            lambda x: "Unknown" if x == "?" else x)
+        df["workclass"] = df["workclass"].apply(lambda x: "Unknown" if x == "?" else x)
         df["occupation"] = df["occupation"].apply(
             lambda x: "Unknown" if x == "?" else x
         )
@@ -105,15 +105,16 @@ def mlflow_multimodel_register_example():
             data_connector_name="default_runtime_data_connector_name",
             data_asset_name=f"mlflow_{stage}_dataframe_{datetime.now()}",
             runtime_parameters={"batch_data": df},
-            batch_identifiers={
-                "default_identifier_name": "default_identifier"},
+            batch_identifiers={"default_identifier_name": "default_identifier"},
         )
         return batch_request
 
     @task
-    def run_ge_checkpoint(df: pd.DataFrame,
-                          batch_request: RuntimeBatchRequest,
-                          checkpoint_config: CheckpointConfig):
+    def run_ge_checkpoint(
+        df: pd.DataFrame,
+        batch_request: RuntimeBatchRequest,
+        checkpoint_config: CheckpointConfig,
+    ):
         """Run the Great Expectations Checkpoint
 
         Returns the dataframe if tests succeed.
@@ -127,9 +128,7 @@ def mlflow_multimodel_register_example():
         """
 
         base_path = Path(__file__).parents[2]
-        data_context_root_dir = os.path.join(
-            base_path, "include", "great_expectations"
-        )
+        data_context_root_dir = os.path.join(base_path, "include", "great_expectations")
         data_context = ge.data_context.DataContext(
             context_root_dir=data_context_root_dir
         )
@@ -139,8 +138,7 @@ def mlflow_multimodel_register_example():
         result = checkpoint.run(batch_request=batch_request)
         logging.info(result)
         if not result["success"]:
-            raise AirflowException(
-                "Validation with Great Expectations failed.")
+            raise AirflowException("Validation with Great Expectations failed.")
         return df
 
     @task
@@ -159,10 +157,8 @@ def mlflow_multimodel_register_example():
         df = pd.get_dummies(df, prefix="occupation", columns=["occupation"])
         df = pd.get_dummies(df, prefix="race", columns=["race"])
         df = pd.get_dummies(df, prefix="sex", columns=["sex"])
-        df = pd.get_dummies(df, prefix="income_bracket",
-                            columns=["income_bracket"])
-        df = pd.get_dummies(df, prefix="native_country",
-                            columns=["native_country"])
+        df = pd.get_dummies(df, prefix="income_bracket", columns=["income_bracket"])
+        df = pd.get_dummies(df, prefix="native_country", columns=["native_country"])
 
         # Bin Ages
         df["age_bins"] = pd.cut(
@@ -175,8 +171,7 @@ def mlflow_multimodel_register_example():
         )
 
         # Drop redundant colulmn
-        df.drop(columns=["income_bracket_<=50K",
-                         "marital_status", "age"], inplace=True)
+        df.drop(columns=["income_bracket_<=50K", "marital_status", "age"], inplace=True)
 
         return df
 
@@ -221,8 +216,7 @@ def mlflow_multimodel_register_example():
                     logging.info("Performing Gridsearch")
                     grid_search.fit(X_train, y_train)
 
-                    logging.info(
-                        f"Best Parameters\n{grid_search.best_params_}")
+                    logging.info(f"Best Parameters\n{grid_search.best_params_}")
                     best_params = grid_search.best_params_
 
                     if model_type == "lgbm":
@@ -302,11 +296,11 @@ def mlflow_multimodel_register_example():
             if k.startswith("best_"):
 
                 if "." in best_run[k]:
-                    best_params[k[len("best_"):]] = float(best_run[k])
+                    best_params[k[len("best_") :]] = float(best_run[k])
                 elif best_run[k].isdigit():
-                    best_params[k[len("best_"):]] = int(best_run[k])
+                    best_params[k[len("best_") :]] = int(best_run[k])
                 else:
-                    best_params[k[len("best_"):]] = best_run[k]
+                    best_params[k[len("best_") :]] = best_run[k]
 
         logging.info(best_params)
 

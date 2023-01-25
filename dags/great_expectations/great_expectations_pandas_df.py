@@ -10,15 +10,13 @@ What makes this a simple data quality case is:
 """
 
 import os
-import pandas as pd
-
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
 
+import pandas as pd
 from airflow import DAG
-from great_expectations_provider.operators.great_expectations import (
-    GreatExpectationsOperator,
-)
+from great_expectations_provider.operators.great_expectations import \
+    GreatExpectationsOperator
 
 base_path = Path(__file__).parents[2]
 data_file = os.path.join(
