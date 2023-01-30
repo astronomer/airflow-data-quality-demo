@@ -34,8 +34,6 @@ from airflow.providers.snowflake.transfers.s3_to_snowflake import \
 from great_expectations_provider.operators.great_expectations import \
     GreatExpectationsOperator
 
-from include.great_expectations.configs.snowflake_configs import \
-    snowflake_audit_checkpoint_config
 from include.libs.schema_reg.base_schema_transforms import \
     snowflake_load_column_string
 
@@ -57,7 +55,6 @@ table_schema_path = (
     f"{base_path}/include/sql/great_expectations_examples/table_schemas/"
 )
 ge_root_dir = os.path.join(base_path, "include", "great_expectations")
-checkpoint_config = snowflake_audit_checkpoint_config
 
 with DAG(
     "great_expectations.snowflake_write_audit_publish",

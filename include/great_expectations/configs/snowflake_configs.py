@@ -13,6 +13,8 @@ data_dir = os.path.join(base_path, "include", "data")
 ge_root_dir = os.path.join(base_path, "include", "great_expectations")
 connection_string = ""
 
+# Note: The user must first configure a `config_variable.yml` file for this to work
+# The file is not included with this repo.
 with open(
     f"{ge_root_dir}/uncommitted/config_variables.yml",
     "r",
