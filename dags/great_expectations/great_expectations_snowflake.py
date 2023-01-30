@@ -25,9 +25,6 @@ from airflow.providers.snowflake.operators.snowflake import SnowflakeOperator
 from great_expectations_provider.operators.great_expectations import \
     GreatExpectationsOperator
 
-from include.great_expectations.configs.snowflake_configs import (
-    snowflake_checkpoint_config, snowflake_data_context_config)
-
 # This table variable is a placeholder, in a live environment, it is better
 # to pull the table info from a Variable in a template
 table = "YELLOW_TRIPDATA"
