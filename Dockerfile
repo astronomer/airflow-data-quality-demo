@@ -6,3 +6,4 @@ USER root
 RUN apt-get update -y
 RUN apt-get install libgomp1 -y
 RUN apt-get install -y git
+USER astro
