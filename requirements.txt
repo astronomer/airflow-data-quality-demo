@@ -1,7 +1,8 @@
 apache-airflow-providers-slack==7.2.0
-airflow-provider-great-expectations==0.2.4
+airflow-provider-great-expectations==0.2.5
 airflow-provider-firebolt==0.1.3
-great-expectations==0.15.44
+apache-airflow-providers-trino==4.3.1
+great-expectations==0.15.50
 lightgbm==3.2.1
 matplotlib==3.5.1
 mlflow==1.23.0

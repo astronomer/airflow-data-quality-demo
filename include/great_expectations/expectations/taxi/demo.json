@@ -10,7 +10,7 @@
       "ge_cloud_id": null,
       "kwargs": {
         "max_value": 11000,
-        "min_value": 9000
+        "min_value": 1000
       },
       "meta": {}
     },
