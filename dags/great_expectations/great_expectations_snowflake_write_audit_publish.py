@@ -26,11 +26,7 @@ from pathlib import Path
 
 from airflow import DAG
 from airflow.models.baseoperator import chain
-from airflow.providers.amazon.aws.transfers.local_to_s3 import \
-    LocalFilesystemToS3Operator
 from airflow.providers.snowflake.operators.snowflake import SnowflakeOperator
-from airflow.providers.snowflake.transfers.s3_to_snowflake import \
-    S3ToSnowflakeOperator
 from great_expectations_provider.operators.great_expectations import \
     GreatExpectationsOperator
 
@@ -40,17 +36,8 @@ from include.libs.schema_reg.base_schema_transforms import \
 # These variables are a placeholder. In a live environment, it is better
 # to pull the info from a Variable.
 table = "YELLOW_TRIPDATA"
-s3_key_prefix = "tripdata"
-s3_bucket = "your-test-bucket"  # replace this with your bucket name
 snowflake_conn = "snowflake_default"
 base_path = Path(__file__).parents[2]
-# To see the failure case, change data_date from "2019-01" to "2019-02"
-data_date = "2019-01"  # "2019-02"
-data_file = os.path.join(
-    base_path,
-    "include",
-    f"sample_data/yellow_trip_data/yellow_tripdata_sample_{data_date}.csv",
-)
 table_schema_path = (
     f"{base_path}/include/sql/great_expectations_examples/table_schemas/"
 )
@@ -62,22 +49,9 @@ with DAG(
     description="Example DAG showcasing a write-audit-publish data quality pattern with Snowflake and Great Expectations.",
     doc_md=__doc__,
     schedule_interval=None,
-    template_searchpath=f"{base_path}/include/sql/great_expectations_examples/",
+    template_searchpath=f"{base_path}/include/sql/snowflake_examples/",
     catchup=False,
 ) as dag:
-
-    """
-    #### Upload task
-    Loads the files to a specified location in S3
-    """
-    upload_to_s3 = LocalFilesystemToS3Operator(
-        task_id="upload_to_s3",
-        filename=data_file,
-        dest_key=f"{s3_key_prefix}/yellow_tripdata_sample.csv",
-        dest_bucket=s3_bucket,
-        aws_conn_id="aws_default",
-        replace=True,
-    )
 
     """
     #### Snowflake table creation
@@ -85,24 +59,25 @@ with DAG(
     """
     create_snowflake_audit_table = SnowflakeOperator(
         task_id="create_snowflake_audit_table",
-        sql="{% include 'create_yellow_tripdata_snowflake_table.sql' %}",
+        sql="{% include 'create_snowflake_yellow_tripdata_table.sql' %}",
         params={"table_name": f"{table}_AUDIT"},
     )
 
     create_snowflake_table = SnowflakeOperator(
         task_id="create_snowflake_table",
-        sql="{% include 'create_yellow_tripdata_snowflake_table.sql' %}",
+        sql="{% include 'create_snowflake_yellow_tripdata_table.sql' %}",
         params={"table_name": table},
     )
 
     """
-    #### Snowflake stage creation
-    Create the stage to load data into from S3
+    #### Insert data
+    Insert data into the Snowflake table using an existing SQL query (stored in
+    the include/sql/snowflake_examples/ directory).
     """
-    create_snowflake_stage = SnowflakeOperator(
-        task_id="create_snowflake_stage",
-        sql="{% include 'create_snowflake_yellow_tripdata_stage.sql' %}",
-        params={"stage_name": f"{table}_STAGE"},
+    load_data = SnowflakeOperator(
+        task_id="load_data",
+        sql="{% include 'load_yellow_tripdata.sql' %}",
+        params={"table_name": f"{table}_AUDIT"},
     )
 
     """
@@ -111,30 +86,16 @@ with DAG(
     """
     delete_snowflake_audit_table = SnowflakeOperator(
         task_id="delete_snowflake_audit_table",
-        sql="{% include 'delete_yellow_tripdata_table.sql' %}",
+        sql="{% include 'delete_snowflake_table.sql' %}",
         params={"table_name": f"{table}_AUDIT"},
-        trigger_rule="all_done",
+        trigger_rule="all_success",
     )
 
     delete_snowflake_table = SnowflakeOperator(
         task_id="delete_snowflake_table",
-        sql="{% include 'delete_yellow_tripdata_table.sql' %}",
+        sql="{% include 'delete_snowflake_table.sql' %}",
         params={"table_name": table},
-        trigger_rule="all_done",
-    )
-
-    """
-    #### Snowflake load task
-    Loads the S3 data from the previous load to a Snowflake table (specified
-    in the Airflow Variables backend)
-    """
-    load_s3_to_snowflake = S3ToSnowflakeOperator(
-        task_id="load_s3_to_snowflake",
-        prefix=s3_key_prefix,
-        stage=f"{table}_STAGE",
-        table=f"{table}_AUDIT",
-        file_format="(type = 'CSV', skip_header = 1, time_format = 'YYYY-MM-DD HH24:MI:SS')",
-        trigger_rule="all_done",
+        trigger_rule="all_success",
     )
 
     """
@@ -146,8 +107,9 @@ with DAG(
         data_context_root_dir=ge_root_dir,
         conn_id=snowflake_conn,
         expectation_suite_name="taxi.demo",
-        data_asset_name=table,
-        fail_task_on_validation_failure=False,
+        schema="SCHEMA", # set this to your schema
+        data_asset_name=f"{table}_AUDIT",
+        #fail_task_on_validation_failure=False,
     )
 
     with open(
@@ -177,9 +139,8 @@ with DAG(
         )
 
     chain(
-        upload_to_s3,
-        [create_snowflake_table, create_snowflake_audit_table, create_snowflake_stage],
-        load_s3_to_snowflake,
+        [create_snowflake_table, create_snowflake_audit_table],
+        load_data,
         ge_snowflake_validation,
         copy_snowflake_audit_to_production_table,
         [delete_snowflake_table, delete_snowflake_audit_table],
