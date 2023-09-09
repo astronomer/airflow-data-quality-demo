@@ -1,0 +1,63 @@
+{
+    "data_asset_type": null,
+    "expectation_suite_name": "attribution_playbook.customer_conversions.json",
+    "expectations": [
+      {
+        "expectation_context": {
+          "description": null
+        },
+        "expectation_type": "expect_table_row_count_to_be_between",
+        "ge_cloud_id": null,
+        "kwargs": {
+          "max_value": 120,
+          "min_value": 100
+        },
+        "meta": {}
+      },
+      {
+        "expectation_context": {
+          "description": null
+        },
+        "expectation_type": "expect_column_values_to_not_be_null",
+        "ge_cloud_id": null,
+        "kwargs": {
+          "column": "id"
+        },
+        "meta": {}
+      },
+      {
+        "expectation_context": {
+          "description": null
+        },
+        "expectation_type": "expect_column_distinct_values_to_be_in_set",
+        "ge_cloud_id": null,
+        "kwargs": {
+          "column": "payment",
+          "value_set": [
+            "credit_card",
+            "coupon",
+            "bank_transfer",
+            "gift_card"
+          ]
+        },
+        "meta": {}
+      },
+      {
+        "expectation_context": {
+          "description": null
+        },
+        "expectation_type": "expect_column_min_to_be_between",
+        "ge_cloud_id": null,
+        "kwargs": {
+          "column": "amount",
+          "min_value": 0
+        },
+        "meta": {}
+      }
+    ],
+    "ge_cloud_id": null,
+    "meta": {
+      "great_expectations_version": "0.15.47"
+    }
+  }
+  
